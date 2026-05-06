@@ -23,7 +23,7 @@ import { StubAuthenticator } from 'rmf-dashboard-framework/services';
 
 const mapApp = createMapApp({
   attributionPrefix: 'Open-RMF',
-  defaultMapLevel: 'L1',
+  defaultMapLevel: 'LG',
   defaultRobotZoom: 20,
   defaultZoom: 6,
 });
