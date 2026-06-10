@@ -7,6 +7,7 @@ import ReactDOM from 'react-dom/client';
 import {
   InitialWindow,
   LocallyPersistentWorkspace,
+  MissionDashboard,
   MicroAppManifest,
   RmfDashboard,
   Workspace,
@@ -23,7 +24,7 @@ import { StubAuthenticator } from 'rmf-dashboard-framework/services';
 
 const mapApp = createMapApp({
   attributionPrefix: 'Open-RMF',
-  defaultMapLevel: 'L1',
+  defaultMapLevel: 'LG',
   defaultRobotZoom: 20,
   defaultZoom: 6,
 });
@@ -94,6 +95,11 @@ export default function App() {
           name: 'Tasks',
           route: 'tasks',
           element: <Workspace initialWindows={tasksWorkspace} />,
+        },
+        {
+          name: 'Mission',
+          route: 'mission',
+          element: <MissionDashboard />,
         },
         {
           name: 'Custom',
