@@ -64,10 +64,10 @@ export function TopBar({
         <Box sx={{ flex: 1 }} />
 
         <FormControl size="small" sx={{ minWidth: 230 }}>
-          <InputLabel id="mission-scenario-label">Scenario</InputLabel>
+          <InputLabel id="mission-scenario-label">Demo Scenario</InputLabel>
           <Select
             labelId="mission-scenario-label"
-            label="Scenario"
+            label="Demo Scenario"
             value={scenarioId}
             onChange={(ev) => onScenarioChange(ev.target.value as ScenarioId)}
           >
