@@ -25,6 +25,10 @@ export interface Subscription {
   listener: Listener;
 }
 
+export type MissionState = Record<string, unknown>;
+export type MissionDebugState = Record<string, unknown>;
+export type MissionEvent = Record<string, unknown>;
+
 export class SioClient {
   public sio: Socket;
   private _subscriptions: Record<string, number> = {};
@@ -111,6 +115,18 @@ export class SioClient {
 
   subscribeDeliveryAlerts(listener: Listener<DeliveryAlert>): Subscription {
     return this.subscribe<DeliveryAlert>('/delivery_alerts', listener);
+  }
+
+  subscribeMissionState(listener: Listener<MissionState>): Subscription {
+    return this.subscribe<MissionState>('/missions/current/state', listener);
+  }
+
+  subscribeMissionDebugState(listener: Listener<MissionDebugState>): Subscription {
+    return this.subscribe<MissionDebugState>('/missions/current/debug_state', listener);
+  }
+
+  subscribeMissionEvents(listener: Listener<MissionEvent>): Subscription {
+    return this.subscribe<MissionEvent>('/missions/current/events', listener);
   }
 }
 

@@ -36,6 +36,10 @@ import { EMPTY, map, Observable, of, shareReplay, switchAll, switchMap } from 'r
 import { Authenticator } from './authenticator';
 import { DefaultTrajectoryManager, RobotTrajectoryManager } from './robot-trajectory-manager';
 
+export type MissionState = Record<string, unknown>;
+export type MissionDebugState = Record<string, unknown>;
+export type MissionEvent = Record<string, unknown>;
+
 export interface RmfApi {
   beaconsApi: BeaconsApi;
   buildingApi: BuildingApi;
@@ -67,6 +71,9 @@ export interface RmfApi {
   alertRequestsObsStore: Observable<AlertRequest>;
   alertResponsesObsStore: Observable<AlertResponse>;
   deliveryAlertObsStore: Observable<DeliveryAlert>;
+  missionStateObs: Observable<MissionState>;
+  missionDebugStateObs: Observable<MissionDebugState>;
+  missionEventsObs: Observable<MissionEvent>;
 }
 
 export class DefaultRmfApi implements RmfApi {
@@ -179,6 +186,18 @@ export class DefaultRmfApi implements RmfApi {
 
     this.deliveryAlertObsStore = this._convertSioToRxObs((sioClient, handler) =>
       sioClient.subscribeDeliveryAlerts(handler),
+    );
+
+    this.missionStateObs = this._convertSioToRxObs((sioClient, handler) =>
+      sioClient.subscribe<MissionState>('/missions/current/state', handler),
+    );
+
+    this.missionDebugStateObs = this._convertSioToRxObs((sioClient, handler) =>
+      sioClient.subscribe<MissionDebugState>('/missions/current/debug_state', handler),
+    );
+
+    this.missionEventsObs = this._convertSioToRxObs((sioClient, handler) =>
+      sioClient.subscribe<MissionEvent>('/missions/current/events', handler),
     );
 
     try {
@@ -316,4 +335,7 @@ export class DefaultRmfApi implements RmfApi {
   alertRequestsObsStore: Observable<AlertRequest>;
   alertResponsesObsStore: Observable<AlertResponse>;
   deliveryAlertObsStore: Observable<DeliveryAlert>;
+  missionStateObs: Observable<MissionState>;
+  missionDebugStateObs: Observable<MissionDebugState>;
+  missionEventsObs: Observable<MissionEvent>;
 }
