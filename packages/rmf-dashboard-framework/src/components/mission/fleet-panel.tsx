@@ -1,15 +1,6 @@
-import {
-  LinearProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Typography,
-} from '@mui/material';
+import { Box, LinearProgress, Stack, Typography } from '@mui/material';
 
-import { Panel, StatusChip } from './common';
+import { KeyValue, Panel, StatusChip } from './common';
 import { DashboardData, SelectedEntity } from './types';
 
 function isProblemRobot(state: string, battery: number): boolean {
@@ -26,58 +17,68 @@ export function FleetPanel({
   onSelectRobot: (robotId: string) => void;
 }) {
   return (
-    <Panel title="Fleet">
-      <TableContainer sx={{ maxHeight: 300 }}>
-        <Table size="small" stickyHeader>
-          <TableHead>
-            <TableRow>
-              <TableCell>Robot</TableCell>
-              <TableCell>State</TableCell>
-              <TableCell>Task</TableCell>
-              <TableCell>Battery</TableCell>
-              <TableCell>Location</TableCell>
-              <TableCell>Issue</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.robots.map((robot) => (
-              <TableRow
-                key={robot.id}
-                hover
-                selected={selectedEntity.type === 'robot' && selectedEntity.id === robot.id}
-                onClick={() => onSelectRobot(robot.id)}
-                sx={{
-                  cursor: 'pointer',
-                  bgcolor: isProblemRobot(robot.state, robot.battery) ? '#fffbeb' : undefined,
-                }}
-              >
-                <TableCell>
-                  <Typography variant="body2" fontWeight={600}>
-                    {robot.label}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {robot.id}
-                  </Typography>
-                </TableCell>
-                <TableCell>
+    <Panel title="Robots">
+      <Stack spacing={1}>
+        {data.robots.map((robot) => {
+          const selected = selectedEntity.type === 'robot' && selectedEntity.id === robot.id;
+          const problem = isProblemRobot(robot.state, robot.battery);
+          return (
+            <Box
+              key={robot.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelectRobot(robot.id)}
+              onKeyDown={(ev) => {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                  onSelectRobot(robot.id);
+                }
+              }}
+              sx={{
+                p: 1,
+                border: 1,
+                borderColor: selected ? 'primary.main' : problem ? 'warning.main' : 'divider',
+                borderRadius: 1,
+                cursor: 'pointer',
+                bgcolor: selected ? '#eff6ff' : problem ? '#fffbeb' : 'background.paper',
+              }}
+            >
+              <Stack spacing={0.75}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="body2" fontWeight={800}>
+                      {robot.label}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {robot.id}
+                    </Typography>
+                  </Box>
                   <StatusChip status={robot.state} />
-                </TableCell>
-                <TableCell>{robot.task || '-'}</TableCell>
-                <TableCell sx={{ minWidth: 92 }}>
-                  <Typography variant="caption">{robot.battery}%</Typography>
+                </Stack>
+
+                <KeyValue label="Task" value={robot.task || '-'} />
+                <KeyValue label="Location" value={robot.location || 'Unknown'} />
+                <Stack spacing={0.25}>
+                  <KeyValue label="Battery" value={`${robot.battery}%`} />
                   <LinearProgress
                     variant="determinate"
                     value={robot.battery}
                     color={robot.battery < 25 ? 'warning' : 'primary'}
                   />
-                </TableCell>
-                <TableCell>{robot.location}</TableCell>
-                <TableCell>{robot.issue || '-'}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                </Stack>
+                {robot.issue && (
+                  <Typography
+                    variant="caption"
+                    color="warning.dark"
+                    sx={{ overflowWrap: 'anywhere' }}
+                  >
+                    {robot.issue}
+                  </Typography>
+                )}
+              </Stack>
+            </Box>
+          );
+        })}
+      </Stack>
     </Panel>
   );
 }
