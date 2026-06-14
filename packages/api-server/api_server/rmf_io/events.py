@@ -75,3 +75,15 @@ class RioEvents:
 @singleton_dep
 def get_rio_events():
     return RioEvents()
+
+
+class MissionEvents:
+    def __init__(self):
+        self.mission_state = BehaviorSubject[dict | None](None)
+        self.mission_debug_state = BehaviorSubject[dict | None](None)
+        self.mission_events = Subject[dict]()
+
+
+@singleton_dep
+def get_mission_events():
+    return MissionEvents()
