@@ -1,10 +1,9 @@
 import { Box } from '@mui/material';
 
-import { AlertsPanel } from './alerts-panel';
+import { ActivityPanel } from './activity-panel';
 import { DetailPanel } from './detail-panel';
-import { EventLog } from './event-log';
 import { FleetPanel } from './fleet-panel';
-import { MapView } from './map-view';
+import { MissionFlowView } from './mission-flow-view';
 import { MissionOverview } from './mission-overview';
 import { MissionTimeline } from './mission-timeline';
 import { TopBar } from './top-bar';
@@ -39,7 +38,11 @@ export function MissionDashboard() {
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: '360px minmax(0, 1fr)' },
+            gridTemplateColumns: {
+              xs: '1fr',
+              lg: '360px minmax(0, 1fr)',
+              xl: '360px minmax(0, 1fr) 420px',
+            },
             gap: 1.5,
             alignItems: 'start',
           }}
@@ -53,51 +56,36 @@ export function MissionDashboard() {
             />
           </Box>
 
-          <Box sx={{ display: 'grid', gap: 1.5 }}>
-            <MapView
+          <Box sx={{ display: 'grid', gap: 1.5, gridColumn: { lg: 2, xl: 'auto' } }}>
+            <MissionFlowView
               data={dashboardData}
               selectedEntity={selectedEntity}
-              onSelectRobot={selectRobot}
+              onSelectTask={selectTask}
               onSelectZone={selectZone}
             />
 
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', xl: '1fr 1fr' },
-                gap: 1.5,
-              }}
-            >
-              <MissionTimeline
-                data={dashboardData}
-                selectedEntity={selectedEntity}
-                onSelectTask={selectTask}
-              />
-              <DetailPanel
-                data={dashboardData}
-                selectedEntity={selectedEntity}
-                onRobotAction={handleRobotAction}
-                onTaskAction={handleTaskAction}
-                onAcknowledgeAlert={acknowledgeAlert}
-              />
-            </Box>
+            <MissionTimeline
+              data={dashboardData}
+              selectedEntity={selectedEntity}
+              onSelectTask={selectTask}
+            />
           </Box>
-        </Box>
 
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', xl: '1.2fr 0.8fr' },
-            gap: 1.5,
-          }}
-        >
-          <AlertsPanel
-            data={dashboardData}
-            selectedEntity={selectedEntity}
-            onSelectAlert={selectAlert}
-            onAcknowledgeAlert={acknowledgeAlert}
-          />
-          <EventLog data={dashboardData} />
+          <Box sx={{ display: 'grid', gap: 1.5 }}>
+            <DetailPanel
+              data={dashboardData}
+              selectedEntity={selectedEntity}
+              onRobotAction={handleRobotAction}
+              onTaskAction={handleTaskAction}
+              onAcknowledgeAlert={acknowledgeAlert}
+            />
+            <ActivityPanel
+              data={dashboardData}
+              selectedEntity={selectedEntity}
+              onSelectAlert={selectAlert}
+              onAcknowledgeAlert={acknowledgeAlert}
+            />
+          </Box>
         </Box>
       </Box>
     </Box>
