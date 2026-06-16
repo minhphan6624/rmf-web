@@ -74,8 +74,7 @@ export function DetailPanel({
             value={robot.battery}
             color={robot.battery < 25 ? 'warning' : 'primary'}
           />
-          <KeyValue label="Location" value={robot.location} />
-          <KeyValue label="Position" value={`${robot.position.x}, ${robot.position.y}`} />
+          <KeyValue label="Logical location" value={robot.location} />
           <KeyValue label="Issue" value={robot.issue || 'None'} />
           <KeyValue label="Last update" value={robot.last_update} />
           <Divider />
@@ -133,9 +132,14 @@ export function DetailPanel({
           </Stack>
           <KeyValue label="Task ID" value={task.id} />
           <KeyValue label="Assigned robot" value={task.assigned_robot} />
+          <KeyValue label="Phase" value={formatLabel(task.phase)} />
           <KeyValue label="Start" value={task.start || 'None'} />
           <KeyValue label="Goal" value={task.goal || 'None'} />
           <KeyValue label="Dependencies" value={task.dependencies.join(', ') || 'None'} />
+          <KeyValue label="Blocked by" value={task.blocked_by || 'None'} />
+          <KeyValue label="Waiting at" value={task.waiting_at || 'None'} />
+          <KeyValue label="Unblock condition" value={task.unblock_condition || 'None'} />
+          <KeyValue label="Next expected" value={task.next_expected_event || 'None'} />
           <KeyValue label="Notes" value={task.notes || 'None'} />
           <Divider />
           <Typography variant="caption" color="text.secondary">
@@ -187,7 +191,8 @@ export function DetailPanel({
           <KeyValue label="Type" value={formatLabel(zone.type)} />
           <KeyValue label="Status" value={formatLabel(zone.status)} />
           <KeyValue label="Occupied by" value={zone.occupied_by || 'None'} />
-          <KeyValue label="Position" value={`${zone.position.x}, ${zone.position.y}`} />
+          <KeyValue label="Package buffer" value={zone.package_buffer || 'Empty'} />
+          <KeyValue label="Lease owner" value={zone.active_lease_owner || 'None'} />
           <Divider />
           <Typography variant="caption" color="text.secondary">
             Nearby robots

@@ -30,7 +30,6 @@ export function MissionOverview({ data }: { data: DashboardData }) {
         <KeyValue label="Active robot" value={data.mission.active_robot || 'None'} />
         <KeyValue label="Current blocker" value={data.mission.current_blocker || 'None'} />
         <KeyValue label="Next step" value={formatLabel(data.mission.next_step)} />
-        <KeyValue label="Started at" value={data.mission.started_at} />
         <KeyValue label="Last update" value={data.mission.last_update} />
       </Stack>
     </Panel>
