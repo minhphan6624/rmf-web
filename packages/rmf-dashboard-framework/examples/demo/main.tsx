@@ -6,16 +6,12 @@ import '@fontsource/roboto/700.css';
 import ReactDOM from 'react-dom/client';
 import {
   InitialWindow,
-  LocallyPersistentWorkspace,
   MissionDashboard,
-  MicroAppManifest,
   RmfDashboard,
   Workspace,
 } from 'rmf-dashboard-framework/components';
 import {
   createMapApp,
-  doorsApp,
-  liftsApp,
   robotMutexGroupsApp,
   robotsApp,
   tasksApp,
@@ -28,15 +24,6 @@ const mapApp = createMapApp({
   defaultRobotZoom: 20,
   defaultZoom: 6,
 });
-
-const appRegistry: MicroAppManifest[] = [
-  mapApp,
-  doorsApp,
-  liftsApp,
-  robotsApp,
-  robotMutexGroupsApp,
-  tasksApp,
-];
 
 const homeWorkspace: InitialWindow[] = [
   {
@@ -51,8 +38,6 @@ const robotsWorkspace: InitialWindow[] = [
     microApp: robotsApp,
   },
   { layout: { x: 8, y: 0, w: 5, h: 8 }, microApp: mapApp },
-  { layout: { x: 0, y: 0, w: 7, h: 4 }, microApp: doorsApp },
-  { layout: { x: 0, y: 0, w: 7, h: 4 }, microApp: liftsApp },
   { layout: { x: 8, y: 0, w: 5, h: 4 }, microApp: robotMutexGroupsApp },
 ];
 
@@ -100,18 +85,6 @@ export default function App() {
           name: 'Mission',
           route: 'mission',
           element: <MissionDashboard />,
-        },
-        {
-          name: 'Custom',
-          route: 'custom',
-          element: (
-            <LocallyPersistentWorkspace
-              defaultWindows={[]}
-              allowDesignMode
-              appRegistry={appRegistry}
-              storageKey="custom-workspace"
-            />
-          ),
         },
       ]}
     />
