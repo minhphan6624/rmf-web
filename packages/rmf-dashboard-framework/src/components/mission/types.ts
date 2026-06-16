@@ -38,6 +38,7 @@ export type TaskStatus =
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 export type ZoneType = 'pickup' | 'dropoff' | 'transfer' | 'base' | 'staging' | 'blocked';
 export type ZoneStatus = 'available' | 'occupied' | 'blocked';
+export type PackageStatus = 'at_source' | 'carried' | 'at_transfer' | 'delivered' | 'in_transit';
 export type EventType =
   | 'mission_event'
   | 'task_event'
@@ -89,11 +90,24 @@ export interface MissionTask {
   id: string;
   label: string;
   status: TaskStatus;
+  phase?: string;
   assigned_robot: string;
   start: string | null;
   goal: string | null;
   dependencies: string[];
+  blocked_reason?: string | null;
+  blocked_by?: string | null;
+  waiting_at?: string | null;
+  unblock_condition?: string | null;
+  next_expected_event?: string | null;
   notes: string;
+}
+
+export interface MissionPackage {
+  id: string;
+  status: PackageStatus;
+  location: string;
+  carried_by: string | null;
 }
 
 export interface Zone {
@@ -103,6 +117,8 @@ export interface Zone {
   position: Position;
   status: ZoneStatus;
   occupied_by?: string;
+  package_buffer?: string;
+  active_lease_owner?: string;
 }
 
 export interface MissionAlert {
@@ -126,6 +142,7 @@ export interface MissionEvent {
 export interface DashboardData {
   mission: MissionSummary;
   system: SystemState;
+  packages: MissionPackage[];
   robots: Robot[];
   tasks: MissionTask[];
   zones: Zone[];
