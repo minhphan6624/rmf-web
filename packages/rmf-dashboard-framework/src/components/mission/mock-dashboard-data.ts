@@ -20,6 +20,26 @@ const baseData: DashboardData = {
     robots_total: 3,
     last_update: '10:42:18',
   },
+  packages: [
+    {
+      id: 'P1',
+      status: 'carried',
+      location: 'source_to_transfer',
+      carried_by: 'tb3_01',
+    },
+    {
+      id: 'P2',
+      status: 'at_source',
+      location: 'source',
+      carried_by: null,
+    },
+    {
+      id: 'P3',
+      status: 'at_source',
+      location: 'source',
+      carried_by: null,
+    },
+  ],
   robots: [
     {
       id: 'tb3_01',
@@ -227,6 +247,11 @@ transferZoneOccupied.tasks = transferZoneOccupied.tasks.map((task) =>
       ? { ...task, status: 'waiting' }
       : task,
 );
+transferZoneOccupied.packages = transferZoneOccupied.packages.map((item) =>
+  item.id === 'P1'
+    ? { ...item, status: 'at_transfer', location: 'transfer', carried_by: null }
+    : item,
+);
 transferZoneOccupied.alerts = [
   {
     id: 'alert_001',
@@ -270,6 +295,11 @@ lowBattery.tasks = lowBattery.tasks.map((task) =>
     : task.id === 'move_to_transfer'
       ? { ...task, status: 'active' }
       : task,
+);
+lowBattery.packages = lowBattery.packages.map((item) =>
+  item.id === 'P1'
+    ? { ...item, status: 'carried', location: 'source_to_transfer', carried_by: 'tb3_01' }
+    : item,
 );
 lowBattery.alerts = [
   {
