@@ -1,117 +1,87 @@
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import MapIcon from '@mui/icons-material/Map';
-import { Box, Button, ButtonBase, Chip, Divider, Stack, Tooltip, Typography } from '@mui/material';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import {
+  Alert,
+  Box,
+  Button,
+  ButtonBase,
+  Chip,
+  LinearProgress,
+  Stack,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+import type React from 'react';
 import { useNavigate } from 'react-router';
 
-import { Panel, StatusChip } from './common';
-import { formatLabel, statusColor } from './formatting';
+import { KeyValue, Panel, StatusChip } from './common';
+import { formatLabel } from './formatting';
 import { getActiveRobot, getActiveTask } from './selectors';
-import { DashboardData, MissionTask, SelectedEntity, Zone } from './types';
+import {
+  DashboardData,
+  MissionPackage,
+  MissionTask,
+  PackageStatus,
+  SelectedEntity,
+  Zone,
+} from './types';
 
-type FlowStage =
-  | 'source'
-  | 'moving_to_transfer'
-  | 'transfer'
-  | 'moving_to_destination'
-  | 'destination';
-
-interface PackageFlow {
-  id: string;
-  stage: FlowStage;
-  upstream?: MissionTask;
-  downstream?: MissionTask;
-}
-
-function textForTask(task: MissionTask): string {
-  return `${task.id} ${task.label} ${task.start ?? ''} ${task.goal ?? ''}`.toLowerCase();
-}
-
-function packageId(task: MissionTask): string | null {
-  const text = `${task.id} ${task.label}`;
-  const match = text.match(/\bP\d+\b/i);
-  if (match) {
-    return match[0].toUpperCase();
+function packageIdFromTask(task?: MissionTask): string | null {
+  if (!task) {
+    return null;
   }
-  const [prefix] = task.id.split(':');
-  return prefix && prefix !== task.id ? prefix.toUpperCase() : null;
+  const match = `${task.id} ${task.label}`.match(/\bP\d+\b/i);
+  return match?.[0].toUpperCase() ?? null;
 }
 
-function isUpstreamTask(task: MissionTask): boolean {
-  const text = textForTask(task);
-  return text.includes('source') && text.includes('transfer');
-}
-
-function isDownstreamTask(task: MissionTask): boolean {
-  const text = textForTask(task);
-  return (
-    text.includes('transfer') &&
-    (text.includes('destination') || text.includes('dropoff') || text.includes('drop_off'))
-  );
-}
-
-function packageStage(upstream?: MissionTask, downstream?: MissionTask): FlowStage {
-  if (downstream?.status === 'completed') {
-    return 'destination';
-  }
-  if (downstream && ['active', 'waiting', 'failed'].includes(downstream.status)) {
-    return 'moving_to_destination';
-  }
-  if (upstream?.status === 'completed') {
-    return 'transfer';
-  }
-  if (upstream && ['active', 'waiting', 'failed'].includes(upstream.status)) {
-    return 'moving_to_transfer';
-  }
-  return 'source';
-}
-
-function packageFlows(tasks: MissionTask[]): PackageFlow[] {
-  const grouped = new Map<string, { upstream?: MissionTask; downstream?: MissionTask }>();
-
+function fallbackPackages(tasks: MissionTask[]): MissionPackage[] {
+  const packages = new Map<string, MissionPackage>();
   tasks.forEach((task) => {
-    const id = packageId(task);
-    if (!id) {
+    const id = packageIdFromTask(task);
+    if (!id || packages.has(id)) {
       return;
     }
-    const group = grouped.get(id) ?? {};
-    if (isUpstreamTask(task)) {
-      group.upstream = task;
-    }
-    if (isDownstreamTask(task)) {
-      group.downstream = task;
-    }
-    grouped.set(id, group);
+    packages.set(id, {
+      id,
+      status: task.status === 'completed' ? 'delivered' : 'at_source',
+      location: task.status === 'completed' ? 'destination' : 'source',
+      carried_by: null,
+    });
   });
-
-  return [...grouped.entries()].map(([id, group]) => ({
-    id,
-    ...group,
-    stage: packageStage(group.upstream, group.downstream),
-  }));
+  return [...packages.values()];
 }
 
-function zoneByType(data: DashboardData, type: Zone['type'], fallbackId: string): Zone {
+function zoneByType(data: DashboardData, type: Zone['type'], fallbackId: string): Zone | undefined {
   return (
     data.zones.find((zone) => zone.type === type) ??
-    data.zones.find((zone) => zone.id.includes(fallbackId)) ??
-    data.zones[0]
+    data.zones.find((zone) => zone.id.includes(fallbackId))
   );
 }
 
-function tasksForLeg(tasks: MissionTask[], leg: 'upstream' | 'downstream'): MissionTask[] {
-  return tasks.filter(leg === 'upstream' ? isUpstreamTask : isDownstreamTask);
+function packagesByStatus(packages: MissionPackage[], status: PackageStatus): MissionPackage[] {
+  return packages.filter((item) => item.status === status);
 }
 
-function activeLegTask(tasks: MissionTask[]): MissionTask | undefined {
-  return tasks.find((task) => ['active', 'waiting', 'failed'].includes(task.status)) ?? tasks[0];
+function activePackage(
+  packages: MissionPackage[],
+  activeTask: MissionTask | undefined,
+  activeRobotId: string | undefined,
+): MissionPackage | undefined {
+  const taskPackageId = packageIdFromTask(activeTask);
+  return (
+    packages.find((item) => item.id === taskPackageId) ??
+    packages.find((item) => item.carried_by === activeRobotId) ??
+    packages.find((item) => item.status === 'carried' || item.status === 'in_transit')
+  );
 }
 
-function stagePackages(flows: PackageFlow[], stage: FlowStage): string[] {
-  return flows.filter((item) => item.stage === stage).map((item) => item.id);
+function packageLabels(packages: MissionPackage[]): string[] {
+  return packages.map((item) => item.id);
 }
 
-function PackageChips({ ids }: { ids: string[] }) {
-  if (ids.length === 0) {
+function PackageChips({ packages }: { packages: MissionPackage[] }) {
+  const labels = packageLabels(packages);
+  if (labels.length === 0) {
     return (
       <Typography variant="caption" color="text.secondary">
         None
@@ -120,58 +90,118 @@ function PackageChips({ ids }: { ids: string[] }) {
   }
   return (
     <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-      {ids.map((id) => (
+      {labels.map((id) => (
         <Chip key={id} size="small" label={id} sx={{ height: 22 }} />
       ))}
     </Stack>
   );
 }
 
-function FlowNode({
-  label,
+function Section({
+  title,
+  children,
+}: React.PropsWithChildren<{
+  title: string;
+}>) {
+  return (
+    <Box sx={{ minWidth: 0 }}>
+      <Typography variant="caption" color="text.secondary" fontWeight={800}>
+        {title}
+      </Typography>
+      <Box sx={{ mt: 0.75 }}>{children}</Box>
+    </Box>
+  );
+}
+
+function TransferResource({
   zone,
-  packages,
   selected,
   onSelect,
 }: {
-  label: string;
   zone?: Zone;
-  packages: string[];
   selected: boolean;
   onSelect: () => void;
 }) {
   return (
     <ButtonBase
       onClick={onSelect}
+      disabled={!zone}
       sx={{
         width: '100%',
-        minHeight: 118,
         p: 1.25,
         border: 1,
         borderColor: selected ? 'primary.main' : 'divider',
         borderRadius: 1,
         alignItems: 'stretch',
         justifyContent: 'flex-start',
-        bgcolor: selected ? '#eff6ff' : 'background.paper',
         textAlign: 'left',
+        bgcolor: selected ? '#eff6ff' : 'background.paper',
       }}
     >
       <Stack spacing={0.75} sx={{ width: '100%' }}>
-        <Stack direction="row" spacing={1} alignItems="center">
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
           <Typography variant="subtitle2" fontWeight={800}>
-            {label}
+            Transfer Resource
           </Typography>
-          {zone && (
-            <Chip size="small" label={formatLabel(zone.status)} color={statusColor(zone.status)} />
-          )}
+          {zone && <StatusChip status={zone.status} />}
         </Stack>
-        <Typography variant="caption" color="text.secondary">
-          {zone?.label ?? 'Not reported'}
+        <KeyValue label="Occupied by" value={zone?.occupied_by || 'None'} />
+        <KeyValue label="Package buffer" value={zone?.package_buffer || 'Empty'} />
+        <KeyValue label="Lease owner" value={zone?.active_lease_owner || 'None'} />
+      </Stack>
+    </ButtonBase>
+  );
+}
+
+function ActiveWork({
+  task,
+  robotId,
+  item,
+  onSelectTask,
+}: {
+  task?: MissionTask;
+  robotId?: string;
+  item?: MissionPackage;
+  onSelectTask: (taskId: string) => void;
+}) {
+  return (
+    <ButtonBase
+      onClick={() => task && onSelectTask(task.id)}
+      disabled={!task}
+      sx={{
+        width: '100%',
+        p: 1.25,
+        border: 1,
+        borderColor: task ? 'primary.main' : 'divider',
+        borderRadius: 1,
+        alignItems: 'stretch',
+        justifyContent: 'flex-start',
+        textAlign: 'left',
+        bgcolor: task?.status === 'waiting' ? '#fffbeb' : task ? '#eff6ff' : 'background.paper',
+      }}
+    >
+      <Stack spacing={0.75} sx={{ width: '100%' }}>
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+          <Typography variant="subtitle2" fontWeight={800}>
+            Active Work
+          </Typography>
+          {task && <StatusChip status={task.status} />}
+        </Stack>
+        <Typography variant="body2" fontWeight={700}>
+          {task?.label ?? 'No active mission task'}
         </Typography>
-        <PackageChips ids={packages} />
-        {zone?.occupied_by && (
-          <Typography variant="caption" color="text.secondary">
-            Occupied by {zone.occupied_by}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+          <KeyValue label="Package" value={item?.id || packageIdFromTask(task) || 'None'} />
+          <KeyValue label="Robot" value={robotId || task?.assigned_robot || 'None'} />
+          <KeyValue
+            label="Leg"
+            value={task ? `${task.start || 'Start'} -> ${task.goal || 'Done'}` : 'None'}
+          />
+        </Stack>
+        {(task?.waiting_at || task?.next_expected_event || task?.unblock_condition) && (
+          <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+            {task.waiting_at ? `Waiting at ${task.waiting_at}. ` : ''}
+            {task.unblock_condition || task.next_expected_event}
           </Typography>
         )}
       </Stack>
@@ -179,69 +209,25 @@ function FlowNode({
   );
 }
 
-function FlowLeg({
-  label,
-  task,
+function PackageQueue({
+  title,
   packages,
-  onSelectTask,
+  total,
 }: {
-  label: string;
-  task?: MissionTask;
-  packages: string[];
-  onSelectTask: (taskId: string) => void;
+  title: string;
+  packages: MissionPackage[];
+  total: number;
 }) {
   return (
-    <Box
-      sx={{
-        minHeight: 118,
-        p: 1.25,
-        border: 1,
-        borderColor:
-          task?.status === 'active' || task?.status === 'waiting' ? 'primary.main' : 'divider',
-        borderRadius: 1,
-        bgcolor:
-          task?.status === 'active'
-            ? '#eff6ff'
-            : task?.status === 'waiting'
-              ? '#fffbeb'
-              : '#f8fafc',
-      }}
-    >
+    <Section title={`${title} (${packages.length})`}>
       <Stack spacing={0.75}>
-        <Stack direction="row" spacing={0.75} alignItems="center">
-          <ArrowForwardIcon
-            color={task?.status === 'active' ? 'primary' : 'disabled'}
-            fontSize="small"
-          />
-          <Typography variant="subtitle2" fontWeight={800}>
-            {label}
-          </Typography>
-        </Stack>
-        {task ? (
-          <ButtonBase
-            onClick={() => onSelectTask(task.id)}
-            sx={{ justifyContent: 'flex-start', textAlign: 'left', borderRadius: 1 }}
-          >
-            <Stack spacing={0.5}>
-              <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
-                <Typography variant="body2" fontWeight={700}>
-                  {task.assigned_robot || 'Unassigned'}
-                </Typography>
-                <StatusChip status={task.status} />
-              </Stack>
-              <Typography variant="caption" color="text.secondary">
-                {task.label}
-              </Typography>
-            </Stack>
-          </ButtonBase>
-        ) : (
-          <Typography variant="body2" color="text.secondary">
-            No task reported
-          </Typography>
-        )}
-        <PackageChips ids={packages} />
+        <LinearProgress
+          variant="determinate"
+          value={total > 0 ? Math.round((packages.length / total) * 100) : 0}
+        />
+        <PackageChips packages={packages} />
       </Stack>
-    </Box>
+    </Section>
   );
 }
 
@@ -257,18 +243,26 @@ export function MissionFlowView({
   onSelectZone: (zoneId: string) => void;
 }) {
   const navigate = useNavigate();
+  const packages = data.packages.length > 0 ? data.packages : fallbackPackages(data.tasks);
   const activeTask = getActiveTask(data);
   const activeRobot = getActiveRobot(data);
-  const flows = packageFlows(data.tasks);
-  const upstreamTask = activeLegTask(tasksForLeg(data.tasks, 'upstream'));
-  const downstreamTask = activeLegTask(tasksForLeg(data.tasks, 'downstream'));
-  const pickupZone = zoneByType(data, 'pickup', 'source');
+  const activeItem = activePackage(packages, activeTask, activeRobot?.id);
+  const sourcePackages = packagesByStatus(packages, 'at_source');
+  const transferPackages = packagesByStatus(packages, 'at_transfer');
+  const deliveredPackages = packagesByStatus(packages, 'delivered');
+  const movingPackages = packages.filter(
+    (item) => item.status === 'carried' || item.status === 'in_transit',
+  );
   const transferZone = zoneByType(data, 'transfer', 'transfer');
-  const destinationZone = zoneByType(data, 'dropoff', 'destination');
+  const attention =
+    data.mission.current_blocker ||
+    activeTask?.blocked_reason ||
+    activeTask?.unblock_condition ||
+    activeTask?.next_expected_event;
 
   return (
     <Panel
-      title="Mission Flow"
+      title="Mission Control"
       action={
         <Tooltip title="Open the full Open-RMF map tab">
           <Button size="small" startIcon={<MapIcon />} onClick={() => navigate('..')}>
@@ -278,81 +272,61 @@ export function MissionFlowView({
       }
     >
       <Stack spacing={1.25}>
+        {attention && (
+          <Alert
+            severity={data.mission.current_blocker ? 'warning' : 'info'}
+            icon={<WarningAmberIcon />}
+          >
+            {attention}
+          </Alert>
+        )}
+
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <Chip size="small" label={`Phase: ${formatLabel(data.mission.phase)}`} />
-          <Chip size="small" label={`Active robot: ${activeRobot?.id ?? 'None'}`} />
+          <Chip
+            size="small"
+            label={`Progress: ${data.mission.current_step} / ${data.mission.total_steps}`}
+          />
           <Chip size="small" label={`Next: ${formatLabel(data.mission.next_step)}`} />
-          {data.mission.current_blocker && (
-            <Chip size="small" color="warning" label={data.mission.current_blocker} />
-          )}
         </Stack>
 
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '1fr 1.1fr 1fr 1.1fr 1fr' },
+            gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.3fr) minmax(280px, 0.7fr)' },
             gap: 1,
-            alignItems: 'stretch',
           }}
         >
-          <FlowNode
-            label="Source"
-            zone={pickupZone}
-            packages={stagePackages(flows, 'source')}
-            selected={selectedEntity.type === 'zone' && selectedEntity.id === pickupZone?.id}
-            onSelect={() => pickupZone && onSelectZone(pickupZone.id)}
-          />
-          <FlowLeg
-            label="Source to transfer"
-            task={upstreamTask}
-            packages={stagePackages(flows, 'moving_to_transfer')}
+          <ActiveWork
+            task={activeTask}
+            robotId={activeRobot?.id}
+            item={activeItem}
             onSelectTask={onSelectTask}
           />
-          <FlowNode
-            label="Transfer"
+          <TransferResource
             zone={transferZone}
-            packages={stagePackages(flows, 'transfer')}
             selected={selectedEntity.type === 'zone' && selectedEntity.id === transferZone?.id}
             onSelect={() => transferZone && onSelectZone(transferZone.id)}
           />
-          <FlowLeg
-            label="Transfer to destination"
-            task={downstreamTask}
-            packages={stagePackages(flows, 'moving_to_destination')}
-            onSelectTask={onSelectTask}
-          />
-          <FlowNode
-            label="Destination"
-            zone={destinationZone}
-            packages={stagePackages(flows, 'destination')}
-            selected={selectedEntity.type === 'zone' && selectedEntity.id === destinationZone?.id}
-            onSelect={() => destinationZone && onSelectZone(destinationZone.id)}
-          />
         </Box>
 
-        {activeTask && (
-          <>
-            <Divider />
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={1}
-              alignItems={{ sm: 'center' }}
-            >
-              <Typography variant="body2" fontWeight={800}>
-                Active step
-              </Typography>
-              <ButtonBase onClick={() => onSelectTask(activeTask.id)} sx={{ textAlign: 'left' }}>
-                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                  <StatusChip status={activeTask.status} />
-                  <Typography variant="body2">{activeTask.label}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {activeTask.assigned_robot || 'Unassigned'}
-                  </Typography>
-                </Stack>
-              </ButtonBase>
-            </Stack>
-          </>
-        )}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(4, minmax(0, 1fr))' },
+            gap: 1.5,
+            pt: 0.5,
+          }}
+        >
+          <PackageQueue title="Source Queue" packages={sourcePackages} total={packages.length} />
+          <PackageQueue title="Moving" packages={movingPackages} total={packages.length} />
+          <PackageQueue
+            title="Transfer Buffer"
+            packages={transferPackages}
+            total={packages.length}
+          />
+          <PackageQueue title="Delivered" packages={deliveredPackages} total={packages.length} />
+        </Box>
       </Stack>
     </Panel>
   );
