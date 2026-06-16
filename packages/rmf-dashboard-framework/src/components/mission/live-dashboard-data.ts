@@ -3,6 +3,7 @@ import {
   DashboardData,
   EventType,
   MissionEvent,
+  MissionPackage,
   MissionPhase,
   MissionStatus,
   MissionTask,
@@ -118,6 +119,13 @@ function taskStatus(value: unknown): TaskStatus {
     : 'pending';
 }
 
+function packageStatus(value: unknown): MissionPackage['status'] {
+  const status = asString(value, 'in_transit');
+  return ['at_source', 'carried', 'at_transfer', 'delivered', 'in_transit'].includes(status)
+    ? (status as MissionPackage['status'])
+    : 'in_transit';
+}
+
 function zoneType(value: unknown): ZoneType {
   const type = asString(value, 'blocked');
   return ['pickup', 'dropoff', 'transfer', 'base', 'staging', 'blocked'].includes(type)
@@ -177,17 +185,36 @@ function mapRobots(base: DashboardData, state: RawMissionState): Robot[] {
   });
 }
 
+function mapPackages(state: RawMissionState): MissionPackage[] {
+  const packages = asRecord(state.packages);
+  return Object.entries(packages).map(([id, rawPackage]) => {
+    const item = asRecord(rawPackage);
+    return {
+      id: asString(item.package_id, id),
+      status: packageStatus(item.status),
+      location: asString(item.location, 'unknown'),
+      carried_by: asNullableString(item.carried_by),
+    };
+  });
+}
+
 function mapTasks(state: RawMissionState): MissionTask[] {
   return asArray(state.tasks).map((task) => ({
     id: asString(task.id, 'task'),
     label: asString(task.label, asString(task.id, 'Task')),
     status: taskStatus(task.status),
+    phase: asNullableString(task.phase) ?? undefined,
     assigned_robot: asString(task.assigned_robot, ''),
     start: asNullableString(task.start),
     goal: asNullableString(task.goal),
     dependencies: Array.isArray(task.dependencies)
       ? task.dependencies.filter((item): item is string => typeof item === 'string')
       : [],
+    blocked_reason: asNullableString(task.blocked_reason),
+    blocked_by: asNullableString(task.blocked_by),
+    waiting_at: asNullableString(task.waiting_at),
+    unblock_condition: asNullableString(task.unblock_condition),
+    next_expected_event: asNullableString(task.next_expected_event),
     notes: asString(task.notes, asString(task.blocked_reason, '')),
   }));
 }
@@ -203,6 +230,8 @@ function mapZones(base: DashboardData, state: RawMissionState): Zone[] {
       position: positionFor(id, existing),
       status: zoneStatus(zone.status),
       occupied_by: asNullableString(zone.occupied_by) ?? undefined,
+      package_buffer: asNullableString(zone.package_buffer) ?? undefined,
+      active_lease_owner: asNullableString(zone.active_lease_owner) ?? undefined,
     };
   });
 }
@@ -219,6 +248,7 @@ export function missionEventToDashboardEvent(event: RawMissionEvent): MissionEve
 export function mergeMissionState(base: DashboardData, state: RawMissionState): DashboardData {
   const mission = asRecord(state.mission);
   const lastUpdate = formatTimestamp(mission.last_update ?? state.last_update_time);
+  const packages = mapPackages(state);
   const robots = mapRobots(base, state);
   const tasks = mapTasks(state);
   const zones = mapZones(base, state);
@@ -248,6 +278,7 @@ export function mergeMissionState(base: DashboardData, state: RawMissionState): 
       robots_total: robots.length,
       last_update: lastUpdate,
     },
+    packages: packages.length > 0 ? packages : base.packages,
     robots,
     tasks,
     zones,
