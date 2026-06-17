@@ -1,4 +1,6 @@
-import { Box, LinearProgress, Stack, Typography } from '@mui/material';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import { Box, Button, Chip, LinearProgress, Stack, Typography } from '@mui/material';
+import { useNavigate } from 'react-router';
 
 import { KeyValue, Panel, StatusChip } from './common';
 import { DashboardData, SelectedEntity } from './types';
@@ -16,9 +18,29 @@ export function FleetPanel({
   selectedEntity: SelectedEntity;
   onSelectRobot: (robotId: string) => void;
 }) {
+  const navigate = useNavigate();
+
   return (
-    <Panel title="Robots">
+    <Panel
+      title="Robots"
+      action={
+        <Stack direction="row" spacing={1}>
+          <Chip
+            size="small"
+            label={`${data.system.robots_online} / ${data.system.robots_total} online`}
+          />
+          {data.system.connection_status !== 'connected' && (
+            <Chip size="small" color="warning" label={data.system.connection_status} />
+          )}
+        </Stack>
+      }
+    >
       <Stack spacing={1}>
+        {data.robots.length === 0 && (
+          <Typography variant="body2" color="text.secondary">
+            Robot data unavailable.
+          </Typography>
+        )}
         {data.robots.map((robot) => {
           const selected = selectedEntity.type === 'robot' && selectedEntity.id === robot.id;
           const problem = isProblemRobot(robot.state, robot.battery);
@@ -74,6 +96,18 @@ export function FleetPanel({
                     {robot.issue}
                   </Typography>
                 )}
+                <Box>
+                  <Button
+                    size="small"
+                    startIcon={<OpenInNewIcon />}
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      navigate('../robots');
+                    }}
+                  >
+                    Open Robots Tab
+                  </Button>
+                </Box>
               </Stack>
             </Box>
           );
