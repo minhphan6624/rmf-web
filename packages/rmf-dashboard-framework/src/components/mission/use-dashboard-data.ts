@@ -138,37 +138,49 @@ export function useDashboardData() {
     });
   }, []);
 
-  const handleMissionAction = React.useCallback((action: MissionAction) => {
-    if (action === 'cancel' && !window.confirm('Cancel this mission?')) {
-      return;
-    }
-    console.log(`mission action: ${action}`);
-    setDashboardData((current) => {
-      const status =
-        action === 'start'
-          ? 'active'
-          : action === 'pause'
-            ? 'paused'
-            : action === 'resume'
-              ? 'active'
-              : 'cancelled';
-      return {
-        ...current,
-        mission: {
-          ...current.mission,
-          status,
-          phase: action === 'pause' ? 'mission_paused' : current.mission.phase,
-          current_blocker:
-            action === 'cancel' ? 'Mission cancelled by operator' : current.mission.current_blocker,
-          last_update: currentTime(),
-        },
-        events: [
-          makeOperatorEvent('operator_event', `${formatLabel(action)} Mission requested`),
-          ...current.events,
-        ],
-      };
-    });
-  }, []);
+  const handleMissionAction = React.useCallback(
+    async (action: MissionAction) => {
+      if (action === 'abort' && !window.confirm('Abort this mission?')) {
+        return;
+      }
+
+      if (!scenarioId) {
+        try {
+          await rmfApi.sendMissionCommand(dashboardData.mission.id, action);
+        } catch (e) {
+          console.error(`Failed to send mission command: ${(e as Error).message}`);
+        }
+        return;
+      }
+
+      setDashboardData((current) => {
+        const status =
+          action === 'start'
+            ? 'active'
+            : action === 'pause'
+              ? 'paused'
+              : action === 'resume'
+                ? 'active'
+                : 'cancelled';
+        return {
+          ...current,
+          mission: {
+            ...current.mission,
+            status,
+            phase: action === 'pause' ? 'mission_paused' : current.mission.phase,
+            current_blocker:
+              action === 'abort' ? 'Mission aborted by operator' : current.mission.current_blocker,
+            last_update: currentTime(),
+          },
+          events: [
+            makeOperatorEvent('operator_event', `${formatLabel(action)} Mission requested`),
+            ...current.events,
+          ],
+        };
+      });
+    },
+    [dashboardData.mission.id, rmfApi, scenarioId],
+  );
 
   const handleRobotAction = React.useCallback(
     (robotId: string, action: RobotAction) => {
