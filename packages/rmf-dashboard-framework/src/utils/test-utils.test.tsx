@@ -117,6 +117,9 @@ export class MockRmfApi implements RmfApi {
   alertRequestsObsStore = new Subject<AlertRequest>();
   alertResponsesObsStore = new Subject<AlertResponse>();
   deliveryAlertObsStore = new Subject<DeliveryAlert>();
+  missionStateObs = new Subject<Record<string, unknown>>();
+  missionDebugStateObs = new Subject<Record<string, unknown>>();
+  missionEventsObs = new Subject<Record<string, unknown>>();
 
   private _cacheObs<T>(store: Record<string, Subject<T>>, key: string): Subject<T> {
     if (!(key in store)) {

@@ -1,6 +1,8 @@
 import React from 'react';
 
+import { useRmfApi } from '../../hooks';
 import { currentTime, formatLabel } from './formatting';
+import { mergeMissionState, missionEventToDashboardEvent } from './live-dashboard-data';
 import { cloneDashboardData } from './mock-dashboard-data';
 import {
   DashboardData,
@@ -24,7 +26,9 @@ function makeOperatorEvent(type: EventType, message: string) {
 }
 
 export function useDashboardData() {
+  const rmfApi = useRmfApi();
   const [scenarioId, setScenarioId] = React.useState<ScenarioId>('normal');
+  const liveMissionStateRef = React.useRef<Record<string, unknown> | null>(null);
   const [dashboardData, setDashboardData] = React.useState<DashboardData>(() =>
     cloneDashboardData('normal'),
   );
@@ -35,9 +39,37 @@ export function useDashboardData() {
 
   React.useEffect(() => {
     const nextData = cloneDashboardData(scenarioId);
-    setDashboardData(nextData);
-    setSelectedEntity({ type: 'mission', id: nextData.mission.id });
+    const liveMissionState = liveMissionStateRef.current;
+    const mergedData = liveMissionState ? mergeMissionState(nextData, liveMissionState) : nextData;
+    setDashboardData(mergedData);
+    setSelectedEntity({ type: 'mission', id: mergedData.mission.id });
   }, [scenarioId]);
+
+  React.useEffect(() => {
+    const missionStateSub = rmfApi.missionStateObs.subscribe((missionState) => {
+      liveMissionStateRef.current = missionState;
+      setDashboardData((current) => mergeMissionState(current, missionState));
+    });
+    const missionEventSub = rmfApi.missionEventsObs.subscribe((missionEvent) => {
+      const event = missionEventToDashboardEvent(missionEvent);
+      setDashboardData((current) => ({
+        ...current,
+        events: [event, ...current.events.filter((item) => item.id !== event.id)],
+        mission: {
+          ...current.mission,
+          last_update: event.timestamp,
+        },
+        system: {
+          ...current.system,
+          last_update: event.timestamp,
+        },
+      }));
+    });
+    return () => {
+      missionStateSub.unsubscribe();
+      missionEventSub.unsubscribe();
+    };
+  }, [rmfApi]);
 
   const appendEvent = React.useCallback((type: EventType, message: string) => {
     setDashboardData((current) => ({

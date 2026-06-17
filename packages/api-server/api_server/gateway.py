@@ -3,6 +3,7 @@
 import asyncio
 import base64
 import hashlib
+import json
 import logging
 from datetime import datetime
 from typing import Any, cast
@@ -31,6 +32,7 @@ from rmf_lift_msgs.msg import LiftRequest as RmfLiftRequest
 from rmf_lift_msgs.msg import LiftState as RmfLiftState
 from rosidl_runtime_py.convert import message_to_ordereddict
 from std_msgs.msg import Bool as BoolMsg
+from std_msgs.msg import String as StringMsg
 
 from api_server.fast_io.singleton_dep import singleton_dep
 from api_server.models.user import User
@@ -39,8 +41,10 @@ from api_server.repositories.cached_files import get_cached_file_repo
 from api_server.repositories.rmf import RmfRepository
 from api_server.rmf_io.events import (
     AlertEvents,
+    MissionEvents,
     RmfEvents,
     get_alert_events,
+    get_mission_events,
     get_rmf_events,
 )
 from api_server.ros import get_ros_node
@@ -65,6 +69,7 @@ class RmfGateway:
         ros_node: rclpy.node.Node,
         alert_events: AlertEvents,
         alert_repo: AlertRepository,
+        mission_events: MissionEvents,
         rmf_events: RmfEvents,
         rmf_repo: RmfRepository,
         loop: asyncio.AbstractEventLoop,
@@ -75,6 +80,7 @@ class RmfGateway:
         self._ros_node = ros_node
         self._alert_events = alert_events
         self._alert_repo = alert_repo
+        self._mission_events = mission_events
         self._rmf_events = rmf_events
         self._rmf_repo = rmf_repo
         self._loop = loop
@@ -169,6 +175,74 @@ class RmfGateway:
         return BuildingMap(**processed_map)
 
     def _subscribe_all(self):
+        def parse_mission_json(msg, topic_name: str) -> dict | None:
+            msg = cast(StringMsg, msg)
+            try:
+                payload = json.loads(msg.data)
+            except json.JSONDecodeError:
+                logging.warning("Invalid JSON on %s: %s", topic_name, msg.data)
+                return None
+            if not isinstance(payload, dict):
+                logging.warning(
+                    "Ignored non-object JSON on %s: %s", topic_name, payload
+                )
+                return None
+            return payload
+
+        def handle_mission_state(msg):
+            payload = parse_mission_json(msg, "mission_state")
+            if payload is not None:
+                self._mission_events.mission_state.on_next(payload)
+
+        mission_state_sub = self._ros_node.create_subscription(
+            StringMsg,
+            "mission_state",
+            handle_mission_state,
+            rclpy.qos.QoSProfile(
+                history=rclpy.qos.HistoryPolicy.KEEP_LAST,
+                depth=10,
+                reliability=rclpy.qos.ReliabilityPolicy.RELIABLE,
+                durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL,
+            ),
+        )
+        self._subscriptions.append(mission_state_sub)
+
+        def handle_mission_debug_state(msg):
+            payload = parse_mission_json(msg, "mission_debug_state")
+            if payload is not None:
+                self._mission_events.mission_debug_state.on_next(payload)
+
+        mission_debug_state_sub = self._ros_node.create_subscription(
+            StringMsg,
+            "mission_debug_state",
+            handle_mission_debug_state,
+            rclpy.qos.QoSProfile(
+                history=rclpy.qos.HistoryPolicy.KEEP_LAST,
+                depth=10,
+                reliability=rclpy.qos.ReliabilityPolicy.RELIABLE,
+                durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL,
+            ),
+        )
+        self._subscriptions.append(mission_debug_state_sub)
+
+        def handle_mission_event(msg):
+            payload = parse_mission_json(msg, "mission_events")
+            if payload is not None:
+                self._mission_events.mission_events.on_next(payload)
+
+        mission_events_sub = self._ros_node.create_subscription(
+            StringMsg,
+            "mission_events",
+            handle_mission_event,
+            rclpy.qos.QoSProfile(
+                history=rclpy.qos.HistoryPolicy.KEEP_LAST,
+                depth=50,
+                reliability=rclpy.qos.ReliabilityPolicy.RELIABLE,
+                durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL,
+            ),
+        )
+        self._subscriptions.append(mission_events_sub)
+
         def handle_door_state(msg):
             async def save(door_state: DoorState):
                 await self._rmf_repo.save_door_state(door_state)
@@ -411,6 +485,7 @@ def get_rmf_gateway():
         get_ros_node(),
         get_alert_events(),
         AlertRepository(),
+        get_mission_events(),
         get_rmf_events(),
         RmfRepository(User.get_system_user()),
         asyncio.get_event_loop(),
