@@ -1,12 +1,19 @@
-from typing import Any
+from typing import Annotated, Any, Literal
 
-from fastapi import HTTPException
+from fastapi import Depends, HTTPException
+from pydantic import BaseModel
 from reactivex import operators as rxops
 
 from api_server.fast_io import FastIORouter, SubscriptionRequest
+from api_server.gateway import RmfGateway, get_rmf_gateway
 from api_server.rmf_io import get_mission_events
 
 router = FastIORouter(tags=["Missions"])
+
+
+class MissionCommandRequest(BaseModel):
+    mission_id: str
+    command: Literal["start", "pause", "resume", "abort"]
 
 
 def _current_or_404(value: dict | None):
@@ -62,3 +69,12 @@ def sub_current_mission_events(_req: SubscriptionRequest):
     """
 
     return get_mission_events().mission_events
+
+
+@router.post("/current/command")
+def post_current_mission_command(
+    command: MissionCommandRequest,
+    rmf_gateway: Annotated[RmfGateway, Depends(get_rmf_gateway)],
+):
+    rmf_gateway.publish_mission_command(command.mission_id, command.command)
+    return {"accepted": True}
