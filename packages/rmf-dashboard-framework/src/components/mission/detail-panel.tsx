@@ -12,15 +12,19 @@ import { getNearbyRobots, sortEvents } from './selectors';
 import { DashboardData, RobotAction, SelectedEntity, TaskAction } from './types';
 
 function EmptyDetail({ data }: { data: DashboardData }) {
+  const activeAlerts = data.alerts.filter((alert) => !alert.acknowledged).length;
+
   return (
     <Stack spacing={1}>
       <Typography variant="body2" color="text.secondary">
         Select a robot, task, zone, or alert to inspect details.
       </Typography>
       <KeyValue label="Mission" value={data.mission.name} />
-      <KeyValue label="Phase" value={formatLabel(data.mission.phase)} />
-      <KeyValue label="Active robot" value={data.mission.active_robot || 'None'} />
-      <KeyValue label="Next step" value={formatLabel(data.mission.next_step)} />
+      <KeyValue
+        label="Robots"
+        value={`${data.system.robots_online} / ${data.system.robots_total} online`}
+      />
+      <KeyValue label="Open alerts" value={activeAlerts} />
     </Stack>
   );
 }
