@@ -30,6 +30,7 @@ export function MissionOverview({ data }: { data: DashboardData }) {
           </Alert>
         )}
         <KeyValue label="Status" value={<StatusChip status={data.mission.status} />} />
+        <KeyValue label="Mission ID" value={data.mission.id} />
         <KeyValue
           label="Mission progress"
           value={`${data.mission.current_step} / ${data.mission.total_steps} steps`}
