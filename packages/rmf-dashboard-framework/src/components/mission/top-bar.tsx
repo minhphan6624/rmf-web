@@ -17,7 +17,7 @@ export function TopBar({
   const showStart = ['idle', 'completed', 'failed', 'cancelled'].includes(data.mission.status);
   const showPause = data.mission.status === 'active';
   const showResume = data.mission.status === 'paused';
-  const showCancel = data.mission.status === 'active' || data.mission.status === 'paused';
+  const showAbort = data.mission.status === 'active' || data.mission.status === 'paused';
 
   return (
     <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 1 }}>
@@ -70,15 +70,15 @@ export function TopBar({
               Resume Mission
             </Button>
           )}
-          {showCancel && (
+          {showAbort && (
             <Button
               size="small"
               color="error"
               variant="outlined"
               startIcon={<CancelIcon />}
-              onClick={() => onMissionAction('cancel')}
+              onClick={() => onMissionAction('abort')}
             >
-              Cancel Mission
+              Abort Mission
             </Button>
           )}
         </Stack>
