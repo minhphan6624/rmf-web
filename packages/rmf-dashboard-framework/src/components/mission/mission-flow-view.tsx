@@ -247,6 +247,53 @@ function PackageQueue({
   );
 }
 
+function WaitPoints({
+  zones,
+  robots,
+  selectedEntity,
+  onSelectZone,
+}: {
+  zones: Zone[];
+  robots: DashboardData['robots'];
+  selectedEntity: SelectedEntity;
+  onSelectZone: (zoneId: string) => void;
+}) {
+  return (
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
+      {zones.map((zone) => {
+        const waitingRobot = robots.find((robot) => robot.location === zone.id);
+        return (
+          <ButtonBase
+            key={zone.id}
+            onClick={() => onSelectZone(zone.id)}
+            sx={{
+              flex: 1,
+              p: 1,
+              border: 1,
+              borderColor:
+                selectedEntity.type === 'zone' && selectedEntity.id === zone.id
+                  ? 'primary.main'
+                  : 'divider',
+              borderRadius: 1,
+              justifyContent: 'flex-start',
+              textAlign: 'left',
+            }}
+          >
+            <Stack spacing={0.5} sx={{ width: '100%' }}>
+              <Typography variant="body2" fontWeight={700}>
+                {zone.label}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {waitingRobot ? `${waitingRobot.id} waiting here` : 'No robot waiting'}
+              </Typography>
+            </Stack>
+          </ButtonBase>
+        );
+      })}
+    </Stack>
+  );
+}
+
 export function MissionFlowView({
   data,
   selectedEntity,
@@ -307,13 +354,7 @@ export function MissionFlowView({
           </Alert>
         )}
 
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.3fr) minmax(280px, 0.7fr)' },
-            gap: 1,
-          }}
-        >
+        <Section title="Active Work">
           <ActiveWork
             task={activeTask}
             taskNumber={activeTaskIndex}
@@ -322,70 +363,44 @@ export function MissionFlowView({
             item={activeItem}
             onSelectTask={onSelectTask}
           />
-          <TransferResource
-            zone={transferZone}
-            selected={selectedEntity.type === 'zone' && selectedEntity.id === transferZone?.id}
-            onSelect={() => transferZone && onSelectZone(transferZone.id)}
-          />
-        </Box>
+        </Section>
 
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: 'repeat(4, minmax(0, 1fr))' },
-            gap: 1.5,
-            pt: 0.5,
-          }}
-        >
-          <PackageQueue title="Source Queue" packages={sourcePackages} total={packages.length} />
-          <PackageQueue title="Moving" packages={movingPackages} total={packages.length} />
-          <PackageQueue
-            title="Transfer Buffer"
-            packages={transferPackages}
-            total={packages.length}
-          />
-          <PackageQueue title="Delivered" packages={deliveredPackages} total={packages.length} />
-        </Box>
-
-        {waitZones.length > 0 && (
-          <Box>
-            <Typography variant="caption" color="text.secondary" fontWeight={800}>
-              Wait Points
-            </Typography>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} sx={{ mt: 0.75 }}>
-              {waitZones.map((zone) => {
-                const waitingRobot = data.robots.find((robot) => robot.location === zone.id);
-                return (
-                  <ButtonBase
-                    key={zone.id}
-                    onClick={() => onSelectZone(zone.id)}
-                    sx={{
-                      flex: 1,
-                      p: 1,
-                      border: 1,
-                      borderColor:
-                        selectedEntity.type === 'zone' && selectedEntity.id === zone.id
-                          ? 'primary.main'
-                          : 'divider',
-                      borderRadius: 1,
-                      justifyContent: 'flex-start',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <Stack spacing={0.5} sx={{ width: '100%' }}>
-                      <Typography variant="body2" fontWeight={700}>
-                        {zone.label}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {waitingRobot ? `${waitingRobot.id} waiting here` : 'No robot waiting'}
-                      </Typography>
-                    </Stack>
-                  </ButtonBase>
-                );
-              })}
-            </Stack>
+        <Section title="Package Flow">
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(4, minmax(0, 1fr))' },
+              gap: 1.5,
+            }}
+          >
+            <PackageQueue title="Source Queue" packages={sourcePackages} total={packages.length} />
+            <PackageQueue title="Moving" packages={movingPackages} total={packages.length} />
+            <PackageQueue
+              title="Transfer Buffer"
+              packages={transferPackages}
+              total={packages.length}
+            />
+            <PackageQueue title="Delivered" packages={deliveredPackages} total={packages.length} />
           </Box>
-        )}
+        </Section>
+
+        <Section title="Zone / Resource Management">
+          <Stack spacing={1}>
+            <TransferResource
+              zone={transferZone}
+              selected={selectedEntity.type === 'zone' && selectedEntity.id === transferZone?.id}
+              onSelect={() => transferZone && onSelectZone(transferZone.id)}
+            />
+            {waitZones.length > 0 && (
+              <WaitPoints
+                zones={waitZones}
+                robots={data.robots}
+                selectedEntity={selectedEntity}
+                onSelectZone={onSelectZone}
+              />
+            )}
+          </Stack>
+        </Section>
       </Stack>
     </Panel>
   );
