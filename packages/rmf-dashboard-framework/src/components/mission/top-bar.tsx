@@ -2,32 +2,16 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import PauseIcon from '@mui/icons-material/Pause';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import {
-  Box,
-  Button,
-  Chip,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Paper,
-  Select,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, Button, Chip, Paper, Stack, Typography } from '@mui/material';
 
 import { StatusChip } from './common';
-import { scenarioLabels, scenarioOrder } from './mock-dashboard-data';
-import { DashboardData, MissionAction, ScenarioId } from './types';
+import { DashboardData, MissionAction } from './types';
 
 export function TopBar({
   data,
-  scenarioId,
-  onScenarioChange,
   onMissionAction,
 }: {
   data: DashboardData;
-  scenarioId: ScenarioId;
-  onScenarioChange: (scenarioId: ScenarioId) => void;
   onMissionAction: (action: MissionAction) => void;
 }) {
   const showStart = ['idle', 'completed', 'failed', 'cancelled'].includes(data.mission.status);
@@ -46,38 +30,14 @@ export function TopBar({
           <Typography variant="h6" lineHeight={1.2}>
             {data.mission.name}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {data.mission.id}
-          </Typography>
         </Box>
 
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <StatusChip status={data.mission.status} />
-          <Chip size="small" label={data.system.connection_status} />
-          <Chip
-            size="small"
-            label={`${data.system.robots_online} / ${data.system.robots_total} robots online`}
-          />
           <Chip size="small" label={`Updated ${data.system.last_update}`} />
         </Stack>
 
         <Box sx={{ flex: 1 }} />
-
-        <FormControl size="small" sx={{ minWidth: 230 }}>
-          <InputLabel id="mission-scenario-label">Demo Scenario</InputLabel>
-          <Select
-            labelId="mission-scenario-label"
-            label="Demo Scenario"
-            value={scenarioId}
-            onChange={(ev) => onScenarioChange(ev.target.value as ScenarioId)}
-          >
-            {scenarioOrder.map((id) => (
-              <MenuItem key={id} value={id}>
-                {scenarioLabels[id]}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
 
         <Stack direction="row" spacing={1}>
           {showStart && (

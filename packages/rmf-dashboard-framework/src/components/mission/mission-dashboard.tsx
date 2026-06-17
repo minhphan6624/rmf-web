@@ -12,9 +12,7 @@ import { useDashboardData } from './use-dashboard-data';
 export function MissionDashboard() {
   const {
     dashboardData,
-    scenarioId,
     selectedEntity,
-    setScenarioId,
     selectRobot,
     selectTask,
     selectZone,
@@ -28,12 +26,7 @@ export function MissionDashboard() {
   return (
     <Box sx={{ p: 2, height: 'calc(100vh - 64px)', overflow: 'auto', bgcolor: '#f8fafc' }}>
       <Box sx={{ display: 'grid', gap: 1.5 }}>
-        <TopBar
-          data={dashboardData}
-          scenarioId={scenarioId}
-          onScenarioChange={setScenarioId}
-          onMissionAction={handleMissionAction}
-        />
+        <TopBar data={dashboardData} onMissionAction={handleMissionAction} />
 
         <Box
           sx={{
