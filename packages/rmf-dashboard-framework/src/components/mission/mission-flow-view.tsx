@@ -1,4 +1,5 @@
 import MapIcon from '@mui/icons-material/Map';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import {
   Alert,
@@ -56,6 +57,10 @@ function zoneByType(data: DashboardData, type: Zone['type'], fallbackId: string)
     data.zones.find((zone) => zone.type === type) ??
     data.zones.find((zone) => zone.id.includes(fallbackId))
   );
+}
+
+function stagingZones(data: DashboardData): Zone[] {
+  return data.zones.filter((zone) => zone.type === 'staging');
 }
 
 function packagesByStatus(packages: MissionPackage[], status: PackageStatus): MissionPackage[] {
@@ -117,10 +122,12 @@ function TransferResource({
   zone,
   selected,
   onSelect,
+  onOpenMap,
 }: {
   zone?: Zone;
   selected: boolean;
   onSelect: () => void;
+  onOpenMap: () => void;
 }) {
   return (
     <ButtonBase
@@ -148,6 +155,18 @@ function TransferResource({
         <KeyValue label="Occupied by" value={zone?.occupied_by || 'None'} />
         <KeyValue label="Package buffer" value={zone?.package_buffer || 'Empty'} />
         <KeyValue label="Lease owner" value={zone?.active_lease_owner || 'None'} />
+        <Box>
+          <Button
+            size="small"
+            startIcon={<MapIcon />}
+            onClick={(ev) => {
+              ev.stopPropagation();
+              onOpenMap();
+            }}
+          >
+            Open on Map
+          </Button>
+        </Box>
       </Stack>
     </ButtonBase>
   );
@@ -160,6 +179,7 @@ function ActiveWork({
   robotId,
   item,
   onSelectTask,
+  onOpenTasks,
 }: {
   task?: MissionTask;
   taskNumber: number;
@@ -167,6 +187,7 @@ function ActiveWork({
   robotId?: string;
   item?: MissionPackage;
   onSelectTask: (taskId: string) => void;
+  onOpenTasks: () => void;
 }) {
   const nextEvent = task?.unblock_condition || task?.next_expected_event || null;
 
@@ -215,6 +236,18 @@ function ActiveWork({
             {nextEvent}
           </Typography>
         )}
+        <Box>
+          <Button
+            size="small"
+            startIcon={<OpenInNewIcon />}
+            onClick={(ev) => {
+              ev.stopPropagation();
+              onOpenTasks();
+            }}
+          >
+            Open Tasks Tab
+          </Button>
+        </Box>
       </Stack>
     </ButtonBase>
   );
@@ -268,11 +301,13 @@ export function MissionFlowView({
     (item) => item.status === 'carried' || item.status === 'in_transit',
   );
   const transferZone = zoneByType(data, 'transfer', 'transfer');
+  const waitZones = stagingZones(data);
   const attention =
     data.mission.current_blocker ||
     activeTask?.blocked_reason ||
     activeTask?.unblock_condition ||
-    activeTask?.next_expected_event;
+    activeTask?.next_expected_event ||
+    (data.system.connection_status !== 'connected' ? 'Waiting for live mission data.' : null);
 
   return (
     <Panel
@@ -309,11 +344,13 @@ export function MissionFlowView({
             robotId={activeRobot?.id}
             item={activeItem}
             onSelectTask={onSelectTask}
+            onOpenTasks={() => navigate('../tasks')}
           />
           <TransferResource
             zone={transferZone}
             selected={selectedEntity.type === 'zone' && selectedEntity.id === transferZone?.id}
             onSelect={() => transferZone && onSelectZone(transferZone.id)}
+            onOpenMap={() => navigate('..')}
           />
         </Box>
 
@@ -334,6 +371,46 @@ export function MissionFlowView({
           />
           <PackageQueue title="Delivered" packages={deliveredPackages} total={packages.length} />
         </Box>
+
+        {waitZones.length > 0 && (
+          <Box>
+            <Typography variant="caption" color="text.secondary" fontWeight={800}>
+              Wait Points
+            </Typography>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} sx={{ mt: 0.75 }}>
+              {waitZones.map((zone) => {
+                const waitingRobot = data.robots.find((robot) => robot.location === zone.id);
+                return (
+                  <ButtonBase
+                    key={zone.id}
+                    onClick={() => onSelectZone(zone.id)}
+                    sx={{
+                      flex: 1,
+                      p: 1,
+                      border: 1,
+                      borderColor:
+                        selectedEntity.type === 'zone' && selectedEntity.id === zone.id
+                          ? 'primary.main'
+                          : 'divider',
+                      borderRadius: 1,
+                      justifyContent: 'flex-start',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <Stack spacing={0.5} sx={{ width: '100%' }}>
+                      <Typography variant="body2" fontWeight={700}>
+                        {zone.label}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {waitingRobot ? `${waitingRobot.id} waiting here` : 'No robot waiting'}
+                      </Typography>
+                    </Stack>
+                  </ButtonBase>
+                );
+              })}
+            </Stack>
+          </Box>
+        )}
       </Stack>
     </Panel>
   );
