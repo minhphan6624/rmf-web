@@ -3,7 +3,7 @@ import React from 'react';
 import { useRmfApi } from '../../hooks';
 import { currentTime, formatLabel } from './formatting';
 import { mergeMissionState, missionEventToDashboardEvent } from './live-dashboard-data';
-import { cloneDashboardData } from './mock-dashboard-data';
+import { cloneDashboardData, disconnectedDashboardData } from './mock-dashboard-data';
 import {
   DashboardData,
   EventType,
@@ -16,6 +16,19 @@ import {
 
 let operatorEventCounter = 1;
 
+function queryDemoScenario(): ScenarioId | null {
+  const scenario = new URLSearchParams(window.location.search).get('demo');
+  if (
+    scenario === 'normal' ||
+    scenario === 'transfer_zone_occupied' ||
+    scenario === 'low_battery' ||
+    scenario === 'robot_failure'
+  ) {
+    return scenario;
+  }
+  return null;
+}
+
 function makeOperatorEvent(type: EventType, message: string) {
   return {
     id: `operator_event_${operatorEventCounter++}`,
@@ -27,18 +40,18 @@ function makeOperatorEvent(type: EventType, message: string) {
 
 export function useDashboardData() {
   const rmfApi = useRmfApi();
-  const [scenarioId, setScenarioId] = React.useState<ScenarioId>('normal');
+  const [scenarioId] = React.useState<ScenarioId | null>(() => queryDemoScenario());
   const liveMissionStateRef = React.useRef<Record<string, unknown> | null>(null);
   const [dashboardData, setDashboardData] = React.useState<DashboardData>(() =>
-    cloneDashboardData('normal'),
+    scenarioId ? cloneDashboardData(scenarioId) : disconnectedDashboardData(),
   );
   const [selectedEntity, setSelectedEntity] = React.useState<SelectedEntity>({
     type: 'mission',
-    id: 'delivery_001',
+    id: scenarioId ? cloneDashboardData(scenarioId).mission.id : 'N/A',
   });
 
   React.useEffect(() => {
-    const nextData = cloneDashboardData(scenarioId);
+    const nextData = scenarioId ? cloneDashboardData(scenarioId) : disconnectedDashboardData();
     const liveMissionState = liveMissionStateRef.current;
     const mergedData = liveMissionState ? mergeMissionState(nextData, liveMissionState) : nextData;
     setDashboardData(mergedData);
@@ -175,9 +188,7 @@ export function useDashboardData() {
 
   return {
     dashboardData,
-    scenarioId,
     selectedEntity,
-    setScenarioId,
     selectMission,
     selectRobot,
     selectTask,

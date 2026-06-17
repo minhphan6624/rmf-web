@@ -174,6 +174,20 @@ const baseData: DashboardData = {
       status: 'available',
     },
     {
+      id: 'upstream_exit',
+      label: 'Upstream Exit',
+      type: 'staging',
+      position: { x: 38, y: 48 },
+      status: 'available',
+    },
+    {
+      id: 'downstream_exit',
+      label: 'Downstream Exit',
+      type: 'staging',
+      position: { x: 68, y: 48 },
+      status: 'available',
+    },
+    {
       id: 'base',
       label: 'Base',
       type: 'base',
@@ -402,4 +416,35 @@ export const mockDashboardScenarios: Record<ScenarioId, DashboardData> = {
 
 export function cloneDashboardData(scenarioId: ScenarioId): DashboardData {
   return copy(mockDashboardScenarios[scenarioId]);
+}
+
+export function disconnectedDashboardData(): DashboardData {
+  return {
+    ...copy(baseData),
+    mission: {
+      ...copy(baseData).mission,
+      id: 'N/A',
+      name: 'Mission Dashboard',
+      status: 'idle',
+      phase: 'idle',
+      current_step: 0,
+      total_steps: 0,
+      active_robot: null,
+      current_blocker: null,
+      next_step: null,
+      started_at: 'N/A',
+      last_update: 'N/A',
+    },
+    system: {
+      connection_status: 'disconnected',
+      robots_online: 0,
+      robots_total: 0,
+      last_update: 'N/A',
+    },
+    packages: [],
+    robots: [],
+    tasks: [],
+    alerts: [],
+    events: [],
+  };
 }
