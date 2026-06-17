@@ -155,15 +155,21 @@ function TransferResource({
 
 function ActiveWork({
   task,
+  taskNumber,
+  totalTasks,
   robotId,
   item,
   onSelectTask,
 }: {
   task?: MissionTask;
+  taskNumber: number;
+  totalTasks: number;
   robotId?: string;
   item?: MissionPackage;
   onSelectTask: (taskId: string) => void;
 }) {
+  const nextEvent = task?.unblock_condition || task?.next_expected_event || null;
+
   return (
     <ButtonBase
       onClick={() => task && onSelectTask(task.id)}
@@ -191,6 +197,11 @@ function ActiveWork({
           {task?.label ?? 'No active mission task'}
         </Typography>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+          <KeyValue label="Task progress" value={task ? `${taskNumber} / ${totalTasks}` : 'None'} />
+          <KeyValue label="Phase" value={formatLabel(task?.phase || task?.status || 'idle')} />
+          <KeyValue label="Next" value={nextEvent || 'None'} />
+        </Stack>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
           <KeyValue label="Package" value={item?.id || packageIdFromTask(task) || 'None'} />
           <KeyValue label="Robot" value={robotId || task?.assigned_robot || 'None'} />
           <KeyValue
@@ -201,7 +212,7 @@ function ActiveWork({
         {(task?.waiting_at || task?.next_expected_event || task?.unblock_condition) && (
           <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
             {task.waiting_at ? `Waiting at ${task.waiting_at}. ` : ''}
-            {task.unblock_condition || task.next_expected_event}
+            {nextEvent}
           </Typography>
         )}
       </Stack>
@@ -246,6 +257,9 @@ export function MissionFlowView({
   const packages = data.packages.length > 0 ? data.packages : fallbackPackages(data.tasks);
   const activeTask = getActiveTask(data);
   const activeRobot = getActiveRobot(data);
+  const activeTaskIndex = activeTask
+    ? data.tasks.findIndex((task) => task.id === activeTask.id) + 1
+    : 0;
   const activeItem = activePackage(packages, activeTask, activeRobot?.id);
   const sourcePackages = packagesByStatus(packages, 'at_source');
   const transferPackages = packagesByStatus(packages, 'at_transfer');
@@ -281,15 +295,6 @@ export function MissionFlowView({
           </Alert>
         )}
 
-        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          <Chip size="small" label={`Phase: ${formatLabel(data.mission.phase)}`} />
-          <Chip
-            size="small"
-            label={`Progress: ${data.mission.current_step} / ${data.mission.total_steps}`}
-          />
-          <Chip size="small" label={`Next: ${formatLabel(data.mission.next_step)}`} />
-        </Stack>
-
         <Box
           sx={{
             display: 'grid',
@@ -299,6 +304,8 @@ export function MissionFlowView({
         >
           <ActiveWork
             task={activeTask}
+            taskNumber={activeTaskIndex}
+            totalTasks={data.tasks.length}
             robotId={activeRobot?.id}
             item={activeItem}
             onSelectTask={onSelectTask}

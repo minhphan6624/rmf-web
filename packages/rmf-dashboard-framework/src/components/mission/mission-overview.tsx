@@ -1,14 +1,14 @@
-import { Alert, LinearProgress, Stack } from '@mui/material';
+import { Alert, LinearProgress, Stack, Typography } from '@mui/material';
 
 import { KeyValue, Panel, StatusChip } from './common';
-import { formatLabel } from './formatting';
 import { DashboardData } from './types';
 
 export function MissionOverview({ data }: { data: DashboardData }) {
   const progress = Math.round((data.mission.current_step / data.mission.total_steps) * 100);
+  const activeAlerts = data.alerts.filter((alert) => !alert.acknowledged).length;
 
   return (
-    <Panel title="Mission Overview">
+    <Panel title="Mission Summary">
       <Stack spacing={1}>
         {(data.mission.current_blocker || data.mission.status === 'failed') && (
           <Alert severity={data.mission.status === 'failed' ? 'error' : 'warning'} sx={{ py: 0 }}>
@@ -21,15 +21,16 @@ export function MissionOverview({ data }: { data: DashboardData }) {
           </Alert>
         )}
         <KeyValue label="Status" value={<StatusChip status={data.mission.status} />} />
-        <KeyValue label="Phase" value={<StatusChip status={data.mission.phase} />} />
         <KeyValue
-          label="Progress"
+          label="Mission progress"
           value={`${data.mission.current_step} / ${data.mission.total_steps} steps`}
         />
         <LinearProgress variant="determinate" value={progress} />
-        <KeyValue label="Active robot" value={data.mission.active_robot || 'None'} />
-        <KeyValue label="Current blocker" value={data.mission.current_blocker || 'None'} />
-        <KeyValue label="Next step" value={formatLabel(data.mission.next_step)} />
+        <Typography variant="caption" color="text.secondary">
+          {progress}% complete
+        </Typography>
+        <KeyValue label="Active alerts" value={activeAlerts} />
+        <KeyValue label="Started" value={data.mission.started_at} />
         <KeyValue label="Last update" value={data.mission.last_update} />
       </Stack>
     </Panel>
