@@ -157,7 +157,7 @@ export interface SelectedEntity {
   id: string | null;
 }
 
-export type MissionAction = 'start' | 'pause' | 'resume' | 'cancel';
+export type MissionAction = 'start' | 'pause' | 'resume' | 'abort';
 export type RobotAction = 'send_to_charger' | 'pause_robot' | 'retry_task' | 'reassign_task';
 export type TaskAction = 'retry_task' | 'reassign_task' | 'cancel_task';
 
