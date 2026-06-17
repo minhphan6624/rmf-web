@@ -1,11 +1,6 @@
 import React from 'react';
 import { InitialWindow, Workspace } from 'rmf-dashboard-framework/components';
-import {
-  createMapApp,
-  robotMutexGroupsApp,
-  robotsApp,
-  tasksApp,
-} from 'rmf-dashboard-framework/micro-apps';
+import { createMapApp, robotsApp, tasksApp } from 'rmf-dashboard-framework/micro-apps';
 import { StubAuthenticator } from 'rmf-dashboard-framework/services';
 import { describe, it, vi } from 'vitest';
 
@@ -41,16 +36,15 @@ describe('RmfDashboard', () => {
 
   const robotsWorkspace: InitialWindow[] = [
     {
-      layout: { x: 0, y: 0, w: 7, h: 4 },
+      layout: { x: 0, y: 0, w: 7, h: 5 },
       microApp: robotsApp,
     },
-    { layout: { x: 8, y: 0, w: 5, h: 8 }, microApp: mapApp },
-    { layout: { x: 8, y: 0, w: 5, h: 4 }, microApp: robotMutexGroupsApp },
+    { layout: { x: 7, y: 0, w: 5, h: 8 }, microApp: mapApp },
   ];
 
   const tasksWorkspace: InitialWindow[] = [
     { layout: { x: 0, y: 0, w: 7, h: 8 }, microApp: tasksApp },
-    { layout: { x: 8, y: 0, w: 5, h: 8 }, microApp: mapApp },
+    { layout: { x: 7, y: 0, w: 5, h: 8 }, microApp: mapApp },
   ];
 
   it('renders without crashing', () => {
