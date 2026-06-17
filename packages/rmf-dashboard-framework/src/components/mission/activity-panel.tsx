@@ -38,6 +38,11 @@ export function ActivityPanel({
 
       {tab === 'events' && (
         <Stack spacing={0.75} sx={{ maxHeight: 360, overflow: 'auto' }}>
+          {data.events.length === 0 && (
+            <Typography variant="body2" color="text.secondary">
+              No mission events available.
+            </Typography>
+          )}
           {sortEvents(data.events).map((event) => (
             <Stack key={event.id} direction="row" spacing={1} alignItems="center" sx={{ py: 0.25 }}>
               <Typography
@@ -62,6 +67,11 @@ export function ActivityPanel({
 
       {tab === 'alerts' && (
         <Stack spacing={0.75} sx={{ maxHeight: 360, overflow: 'auto' }}>
+          {data.alerts.length === 0 && (
+            <Typography variant="body2" color="text.secondary">
+              No mission alerts available.
+            </Typography>
+          )}
           {sortAlerts(data.alerts).map((alert) => (
             <Box
               key={alert.id}
