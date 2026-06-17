@@ -25,6 +25,9 @@ export function FleetPanel({
       title="Robots"
       action={
         <Stack direction="row" spacing={1}>
+          <Button size="small" startIcon={<OpenInNewIcon />} onClick={() => navigate('../robots')}>
+            Robots
+          </Button>
           <Chip
             size="small"
             label={`${data.system.robots_online} / ${data.system.robots_total} online`}
@@ -96,18 +99,6 @@ export function FleetPanel({
                     {robot.issue}
                   </Typography>
                 )}
-                <Box>
-                  <Button
-                    size="small"
-                    startIcon={<OpenInNewIcon />}
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      navigate('../robots');
-                    }}
-                  >
-                    Open Robots Tab
-                  </Button>
-                </Box>
               </Stack>
             </Box>
           );

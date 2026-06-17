@@ -122,12 +122,10 @@ function TransferResource({
   zone,
   selected,
   onSelect,
-  onOpenMap,
 }: {
   zone?: Zone;
   selected: boolean;
   onSelect: () => void;
-  onOpenMap: () => void;
 }) {
   return (
     <ButtonBase
@@ -155,18 +153,6 @@ function TransferResource({
         <KeyValue label="Occupied by" value={zone?.occupied_by || 'None'} />
         <KeyValue label="Package buffer" value={zone?.package_buffer || 'Empty'} />
         <KeyValue label="Lease owner" value={zone?.active_lease_owner || 'None'} />
-        <Box>
-          <Button
-            size="small"
-            startIcon={<MapIcon />}
-            onClick={(ev) => {
-              ev.stopPropagation();
-              onOpenMap();
-            }}
-          >
-            Open on Map
-          </Button>
-        </Box>
       </Stack>
     </ButtonBase>
   );
@@ -179,7 +165,6 @@ function ActiveWork({
   robotId,
   item,
   onSelectTask,
-  onOpenTasks,
 }: {
   task?: MissionTask;
   taskNumber: number;
@@ -187,7 +172,6 @@ function ActiveWork({
   robotId?: string;
   item?: MissionPackage;
   onSelectTask: (taskId: string) => void;
-  onOpenTasks: () => void;
 }) {
   const nextEvent = task?.unblock_condition || task?.next_expected_event || null;
 
@@ -236,18 +220,6 @@ function ActiveWork({
             {nextEvent}
           </Typography>
         )}
-        <Box>
-          <Button
-            size="small"
-            startIcon={<OpenInNewIcon />}
-            onClick={(ev) => {
-              ev.stopPropagation();
-              onOpenTasks();
-            }}
-          >
-            Open Tasks Tab
-          </Button>
-        </Box>
       </Stack>
     </ButtonBase>
   );
@@ -313,11 +285,16 @@ export function MissionFlowView({
     <Panel
       title="Mission Control"
       action={
-        <Tooltip title="Open the full Open-RMF map tab">
-          <Button size="small" startIcon={<MapIcon />} onClick={() => navigate('..')}>
-            Open RMF Map
+        <Stack direction="row" spacing={1}>
+          <Tooltip title="Open the full Open-RMF map tab">
+            <Button size="small" startIcon={<MapIcon />} onClick={() => navigate('..')}>
+              Map
+            </Button>
+          </Tooltip>
+          <Button size="small" startIcon={<OpenInNewIcon />} onClick={() => navigate('../tasks')}>
+            Tasks
           </Button>
-        </Tooltip>
+        </Stack>
       }
     >
       <Stack spacing={1.25}>
@@ -344,13 +321,11 @@ export function MissionFlowView({
             robotId={activeRobot?.id}
             item={activeItem}
             onSelectTask={onSelectTask}
-            onOpenTasks={() => navigate('../tasks')}
           />
           <TransferResource
             zone={transferZone}
             selected={selectedEntity.type === 'zone' && selectedEntity.id === transferZone?.id}
             onSelect={() => transferZone && onSelectZone(transferZone.id)}
-            onOpenMap={() => navigate('..')}
           />
         </Box>
 

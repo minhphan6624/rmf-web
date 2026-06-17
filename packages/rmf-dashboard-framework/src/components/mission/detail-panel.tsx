@@ -1,13 +1,10 @@
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EvStationIcon from '@mui/icons-material/EvStation';
-import MapIcon from '@mui/icons-material/Map';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PauseIcon from '@mui/icons-material/Pause';
 import ReplayIcon from '@mui/icons-material/Replay';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { Box, Button, Chip, Divider, LinearProgress, Stack, Typography } from '@mui/material';
-import { useNavigate } from 'react-router';
 
 import { KeyValue, Panel, StatusChip } from './common';
 import { formatLabel } from './formatting';
@@ -45,7 +42,6 @@ export function DetailPanel({
   onTaskAction: (taskId: string, action: TaskAction) => void;
   onAcknowledgeAlert: (alertId: string) => void;
 }) {
-  const navigate = useNavigate();
   const robot =
     selectedEntity.type === 'robot'
       ? data.robots.find((item) => item.id === selectedEntity.id)
@@ -71,27 +67,9 @@ export function DetailPanel({
         : alert
           ? 'Alert Detail'
           : 'Mission Summary';
-  const panelAction = robot ? (
-    <Stack direction="row" spacing={1}>
-      <Button size="small" startIcon={<OpenInNewIcon />} onClick={() => navigate('../robots')}>
-        Robots Tab
-      </Button>
-      <Button size="small" startIcon={<MapIcon />} onClick={() => navigate('..')}>
-        Map
-      </Button>
-    </Stack>
-  ) : task ? (
-    <Button size="small" startIcon={<OpenInNewIcon />} onClick={() => navigate('../tasks')}>
-      Tasks Tab
-    </Button>
-  ) : zone ? (
-    <Button size="small" startIcon={<MapIcon />} onClick={() => navigate('..')}>
-      Open Map
-    </Button>
-  ) : undefined;
 
   return (
-    <Panel title={panelTitle} action={panelAction}>
+    <Panel title={panelTitle}>
       {robot && (
         <Stack spacing={1}>
           <Stack direction="row" spacing={1} alignItems="center">
