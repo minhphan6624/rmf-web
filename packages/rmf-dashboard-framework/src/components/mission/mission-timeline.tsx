@@ -1,7 +1,7 @@
 import { Box, Chip, Stack, Typography } from '@mui/material';
 
 import { Panel, StatusChip } from './common';
-import { formatLabel, statusColor } from './formatting';
+import { statusColor } from './formatting';
 import { DashboardData, SelectedEntity } from './types';
 
 function packageId(taskId: string, label: string): string {
@@ -79,16 +79,11 @@ export function MissionTimeline({
                     </Box>
                     <StatusChip status={task.status} />
                   </Stack>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
-                    {task.dependencies.map((dependency) => (
-                      <Chip
-                        key={dependency}
-                        size="small"
-                        label={`Depends: ${formatLabel(dependency)}`}
-                      />
-                    ))}
-                    {task.notes && <Chip size="small" label={task.notes} />}
-                  </Stack>
+                  {task.notes && (
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                      <Chip size="small" label={task.notes} />
+                    </Stack>
+                  )}
                 </Box>
               );
             })}
