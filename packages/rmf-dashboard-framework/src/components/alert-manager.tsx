@@ -308,6 +308,12 @@ export const AlertManager = React.memo(({ alertAudioPath }: AlertManagerProps) =
           });
           return;
         }
+
+        // Task completion alerts remain available from the notification menu and
+        // can be opened from there without interrupting the user on every completion.
+        if (alertRequest.title === 'Task completed') {
+          return;
+        }
         AppEvents.pushAlert.next(alertRequest);
       }),
     );
