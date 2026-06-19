@@ -39,6 +39,7 @@ import { DefaultTrajectoryManager, RobotTrajectoryManager } from './robot-trajec
 export type MissionState = Record<string, unknown>;
 export type MissionDebugState = Record<string, unknown>;
 export type MissionEvent = Record<string, unknown>;
+export type MissionCommand = 'start' | 'pause' | 'resume' | 'abort';
 
 export interface RmfApi {
   beaconsApi: BeaconsApi;
@@ -74,10 +75,12 @@ export interface RmfApi {
   missionStateObs: Observable<MissionState>;
   missionDebugStateObs: Observable<MissionDebugState>;
   missionEventsObs: Observable<MissionEvent>;
+  sendMissionCommand(missionId: string, command: MissionCommand): Promise<void>;
 }
 
 export class DefaultRmfApi implements RmfApi {
   private _sioClient: Observable<SioClient | null>;
+  private _axiosInst = axios.create();
 
   beaconsApi: BeaconsApi;
   buildingApi: BuildingApi;
@@ -108,8 +111,7 @@ export class DefaultRmfApi implements RmfApi {
 
     // the axios swagger generator is bugged, it does not properly attach the token so we have
     // to manually add them.
-    const axiosInst = axios.create();
-    axiosInst.interceptors.request.use(
+    this._axiosInst.interceptors.request.use(
       async (req) => {
         await authenticator.refreshToken();
         const token = authenticator.token;
@@ -128,18 +130,18 @@ export class DefaultRmfApi implements RmfApi {
       basePath: apiServerUrl,
     });
 
-    this.beaconsApi = new BeaconsApi(apiConfig, undefined, axiosInst);
-    this.buildingApi = new BuildingApi(apiConfig, undefined, axiosInst);
-    this.defaultApi = new DefaultApi(apiConfig, undefined, axiosInst);
-    this.doorsApi = new DoorsApi(apiConfig, undefined, axiosInst);
-    this.liftsApi = new LiftsApi(apiConfig, undefined, axiosInst);
-    this.dispensersApi = new DispensersApi(apiConfig, undefined, axiosInst);
-    this.ingestorsApi = new IngestorsApi(apiConfig, undefined, axiosInst);
-    this.fleetsApi = new FleetsApi(apiConfig, undefined, axiosInst);
-    this.tasksApi = new TasksApi(apiConfig, undefined, axiosInst);
-    this.alertsApi = new AlertsApi(apiConfig, undefined, axiosInst);
-    this.adminApi = new AdminApi(apiConfig, undefined, axiosInst);
-    this.deliveryAlertsApi = new DeliveryAlertsApi(apiConfig, undefined, axiosInst);
+    this.beaconsApi = new BeaconsApi(apiConfig, undefined, this._axiosInst);
+    this.buildingApi = new BuildingApi(apiConfig, undefined, this._axiosInst);
+    this.defaultApi = new DefaultApi(apiConfig, undefined, this._axiosInst);
+    this.doorsApi = new DoorsApi(apiConfig, undefined, this._axiosInst);
+    this.liftsApi = new LiftsApi(apiConfig, undefined, this._axiosInst);
+    this.dispensersApi = new DispensersApi(apiConfig, undefined, this._axiosInst);
+    this.ingestorsApi = new IngestorsApi(apiConfig, undefined, this._axiosInst);
+    this.fleetsApi = new FleetsApi(apiConfig, undefined, this._axiosInst);
+    this.tasksApi = new TasksApi(apiConfig, undefined, this._axiosInst);
+    this.alertsApi = new AlertsApi(apiConfig, undefined, this._axiosInst);
+    this.adminApi = new AdminApi(apiConfig, undefined, this._axiosInst);
+    this.deliveryAlertsApi = new DeliveryAlertsApi(apiConfig, undefined, this._axiosInst);
 
     this.buildingMapObs = this._convertSioToRxObs((sioClient, handler) =>
       sioClient.subscribeBuildingMap(handler),
@@ -210,6 +212,13 @@ export class DefaultRmfApi implements RmfApi {
       console.error(errorMessage);
       return;
     }
+  }
+
+  async sendMissionCommand(missionId: string, command: MissionCommand): Promise<void> {
+    await this._axiosInst.post(`${this.apiServerUrl.replace(/\/$/, '')}/missions/current/command`, {
+      mission_id: missionId,
+      command,
+    });
   }
 
   private _makeSioClient(): Observable<SioClient | null> {

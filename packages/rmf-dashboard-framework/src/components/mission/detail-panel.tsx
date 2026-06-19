@@ -12,15 +12,19 @@ import { getNearbyRobots, sortEvents } from './selectors';
 import { DashboardData, RobotAction, SelectedEntity, TaskAction } from './types';
 
 function EmptyDetail({ data }: { data: DashboardData }) {
+  const activeAlerts = data.alerts.filter((alert) => !alert.acknowledged).length;
+
   return (
     <Stack spacing={1}>
       <Typography variant="body2" color="text.secondary">
         Select a robot, task, zone, or alert to inspect details.
       </Typography>
       <KeyValue label="Mission" value={data.mission.name} />
-      <KeyValue label="Phase" value={formatLabel(data.mission.phase)} />
-      <KeyValue label="Active robot" value={data.mission.active_robot || 'None'} />
-      <KeyValue label="Next step" value={formatLabel(data.mission.next_step)} />
+      <KeyValue
+        label="Robots"
+        value={`${data.system.robots_online} / ${data.system.robots_total} online`}
+      />
+      <KeyValue label="Open alerts" value={activeAlerts} />
     </Stack>
   );
 }
@@ -54,9 +58,18 @@ export function DetailPanel({
     selectedEntity.type === 'alert'
       ? data.alerts.find((item) => item.id === selectedEntity.id)
       : undefined;
+  const panelTitle = robot
+    ? 'Robot Detail'
+    : task
+      ? 'Task Detail'
+      : zone
+        ? 'Zone Detail'
+        : alert
+          ? 'Alert Detail'
+          : 'Mission Summary';
 
   return (
-    <Panel title="Detail Panel">
+    <Panel title={panelTitle}>
       {robot && (
         <Stack spacing={1}>
           <Stack direction="row" spacing={1} alignItems="center">
@@ -74,8 +87,7 @@ export function DetailPanel({
             value={robot.battery}
             color={robot.battery < 25 ? 'warning' : 'primary'}
           />
-          <KeyValue label="Location" value={robot.location} />
-          <KeyValue label="Position" value={`${robot.position.x}, ${robot.position.y}`} />
+          <KeyValue label="Logical location" value={robot.location} />
           <KeyValue label="Issue" value={robot.issue || 'None'} />
           <KeyValue label="Last update" value={robot.last_update} />
           <Divider />
@@ -133,9 +145,14 @@ export function DetailPanel({
           </Stack>
           <KeyValue label="Task ID" value={task.id} />
           <KeyValue label="Assigned robot" value={task.assigned_robot} />
+          <KeyValue label="Phase" value={formatLabel(task.phase)} />
           <KeyValue label="Start" value={task.start || 'None'} />
           <KeyValue label="Goal" value={task.goal || 'None'} />
           <KeyValue label="Dependencies" value={task.dependencies.join(', ') || 'None'} />
+          <KeyValue label="Blocked by" value={task.blocked_by || 'None'} />
+          <KeyValue label="Waiting at" value={task.waiting_at || 'None'} />
+          <KeyValue label="Unblock condition" value={task.unblock_condition || 'None'} />
+          <KeyValue label="Next expected" value={task.next_expected_event || 'None'} />
           <KeyValue label="Notes" value={task.notes || 'None'} />
           <Divider />
           <Typography variant="caption" color="text.secondary">
@@ -187,7 +204,8 @@ export function DetailPanel({
           <KeyValue label="Type" value={formatLabel(zone.type)} />
           <KeyValue label="Status" value={formatLabel(zone.status)} />
           <KeyValue label="Occupied by" value={zone.occupied_by || 'None'} />
-          <KeyValue label="Position" value={`${zone.position.x}, ${zone.position.y}`} />
+          <KeyValue label="Package buffer" value={zone.package_buffer || 'Empty'} />
+          <KeyValue label="Lease owner" value={zone.active_lease_owner || 'None'} />
           <Divider />
           <Typography variant="caption" color="text.secondary">
             Nearby robots

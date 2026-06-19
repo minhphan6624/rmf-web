@@ -134,6 +134,12 @@ class RmfGateway:
             ),
         )
 
+        self._mission_command_pub = self._ros_node.create_publisher(
+            StringMsg,
+            "mission_commands",
+            10,
+        )
+
         self._subscriptions: list[Subscription] = []
 
         self._subscribe_all()
@@ -476,6 +482,11 @@ class RmfGateway:
         reset_msg = BoolMsg()
         reset_msg.data = False
         self._fire_alarm_trigger.publish(reset_msg)
+
+    def publish_mission_command(self, mission_id: str, command: str):
+        msg = StringMsg()
+        msg.data = json.dumps({"mission_id": mission_id, "command": command})
+        self._mission_command_pub.publish(msg)
 
 
 @singleton_dep

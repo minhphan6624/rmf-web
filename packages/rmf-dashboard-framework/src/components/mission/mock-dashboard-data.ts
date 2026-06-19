@@ -20,6 +20,26 @@ const baseData: DashboardData = {
     robots_total: 3,
     last_update: '10:42:18',
   },
+  packages: [
+    {
+      id: 'P1',
+      status: 'carried',
+      location: 'source_to_transfer',
+      carried_by: 'tb3_01',
+    },
+    {
+      id: 'P2',
+      status: 'at_source',
+      location: 'source',
+      carried_by: null,
+    },
+    {
+      id: 'P3',
+      status: 'at_source',
+      location: 'source',
+      carried_by: null,
+    },
+  ],
   robots: [
     {
       id: 'tb3_01',
@@ -154,6 +174,20 @@ const baseData: DashboardData = {
       status: 'available',
     },
     {
+      id: 'upstream_exit',
+      label: 'Upstream Exit',
+      type: 'staging',
+      position: { x: 38, y: 48 },
+      status: 'available',
+    },
+    {
+      id: 'downstream_exit',
+      label: 'Downstream Exit',
+      type: 'staging',
+      position: { x: 68, y: 48 },
+      status: 'available',
+    },
+    {
       id: 'base',
       label: 'Base',
       type: 'base',
@@ -227,6 +261,11 @@ transferZoneOccupied.tasks = transferZoneOccupied.tasks.map((task) =>
       ? { ...task, status: 'waiting' }
       : task,
 );
+transferZoneOccupied.packages = transferZoneOccupied.packages.map((item) =>
+  item.id === 'P1'
+    ? { ...item, status: 'at_transfer', location: 'transfer', carried_by: null }
+    : item,
+);
 transferZoneOccupied.alerts = [
   {
     id: 'alert_001',
@@ -270,6 +309,11 @@ lowBattery.tasks = lowBattery.tasks.map((task) =>
     : task.id === 'move_to_transfer'
       ? { ...task, status: 'active' }
       : task,
+);
+lowBattery.packages = lowBattery.packages.map((item) =>
+  item.id === 'P1'
+    ? { ...item, status: 'carried', location: 'source_to_transfer', carried_by: 'tb3_01' }
+    : item,
 );
 lowBattery.alerts = [
   {
@@ -372,4 +416,35 @@ export const mockDashboardScenarios: Record<ScenarioId, DashboardData> = {
 
 export function cloneDashboardData(scenarioId: ScenarioId): DashboardData {
   return copy(mockDashboardScenarios[scenarioId]);
+}
+
+export function disconnectedDashboardData(): DashboardData {
+  return {
+    ...copy(baseData),
+    mission: {
+      ...copy(baseData).mission,
+      id: 'N/A',
+      name: 'Mission Dashboard',
+      status: 'idle',
+      phase: 'idle',
+      current_step: 0,
+      total_steps: 0,
+      active_robot: null,
+      current_blocker: null,
+      next_step: null,
+      started_at: 'N/A',
+      last_update: 'N/A',
+    },
+    system: {
+      connection_status: 'disconnected',
+      robots_online: 0,
+      robots_total: 0,
+      last_update: 'N/A',
+    },
+    packages: [],
+    robots: [],
+    tasks: [],
+    alerts: [],
+    events: [],
+  };
 }
