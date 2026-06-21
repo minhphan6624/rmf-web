@@ -17,7 +17,7 @@ const mapConfig = {
   attributionPrefix: 'Open-RMF',
   defaultMapLevel: 'LG',
   defaultRobotZoom: 20,
-  defaultZoom: 20,
+  defaultZoom: 30,
 };
 
 const mapApp = createMapApp(mapConfig);

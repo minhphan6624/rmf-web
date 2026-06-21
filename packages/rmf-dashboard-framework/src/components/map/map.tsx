@@ -523,7 +523,7 @@ export const Map = styled((props: MapProps) => {
         </Box>
       )}
       <Canvas
-        style={{ pointerEvents: compact ? 'none' : 'auto' }}
+        style={{ cursor: compact ? 'grab' : 'auto' }}
         onCreated={({ camera }) => {
           let sceneBoundingBoxToUse = sceneBoundingBox;
           if (!sceneBoundingBoxToUse) {
