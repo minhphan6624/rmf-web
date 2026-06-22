@@ -13,7 +13,15 @@ router = FastIORouter(tags=["Missions"])
 
 class MissionCommandRequest(BaseModel):
     mission_id: str
-    command: Literal["start", "pause", "resume", "abort"]
+    command: Literal[
+        "start",
+        "pause",
+        "resume",
+        "abort",
+        "pause_robot",
+        "resume_robot",
+    ]
+    robot_id: str | None = None
 
 
 def _current_or_404(value: dict | None):
@@ -76,5 +84,11 @@ def post_current_mission_command(
     command: MissionCommandRequest,
     rmf_gateway: Annotated[RmfGateway, Depends(get_rmf_gateway)],
 ):
-    rmf_gateway.publish_mission_command(command.mission_id, command.command)
+    if command.command in ("pause_robot", "resume_robot") and command.robot_id is None:
+        raise HTTPException(status_code=422, detail="robot_id is required")
+    rmf_gateway.publish_mission_command(
+        command.mission_id,
+        command.command,
+        command.robot_id,
+    )
     return {"accepted": True}
