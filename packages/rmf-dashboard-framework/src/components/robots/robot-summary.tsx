@@ -9,9 +9,12 @@ import {
   BatteryChargingFull,
   BatteryFull,
   BatteryUnknown,
+  Pause,
+  PlayArrow,
 } from '@mui/icons-material';
 import {
   Box,
+  Button,
   Dialog,
   DialogActions,
   DialogContent,
@@ -33,7 +36,8 @@ import {
 import React from 'react';
 import { combineLatest, EMPTY, mergeMap, of } from 'rxjs';
 
-import { useRmfApi } from '../../hooks';
+import { useAppController, useRmfApi } from '../../hooks';
+import type { RobotCommand } from '../../services';
 import { TaskCancelButton } from '../tasks/task-cancellation';
 import { TaskInspector } from '../tasks/task-inspector';
 import { RobotDecommissionButton } from './robot-decommission';
@@ -104,10 +108,13 @@ const showBatteryIcon = (robot: RobotState, robotBattery: number) => {
 
 export const RobotSummary = React.memo(({ onClose, robot }: RobotSummaryProps) => {
   const rmfApi = useRmfApi();
+  const appController = useAppController();
 
   const [isOpen, setIsOpen] = React.useState(true);
   const [robotState, setRobotState] = React.useState<RobotState | null>(null);
   const [taskState, setTaskState] = React.useState<TaskState | null>(null);
+  const [missionId, setMissionId] = React.useState<string | null>(null);
+  const [robotCommandPending, setRobotCommandPending] = React.useState(false);
   const [openTaskDetailsLogs, setOpenTaskDetailsLogs] = React.useState(false);
   React.useEffect(() => {
     const sub = rmfApi
@@ -127,6 +134,40 @@ export const RobotSummary = React.memo(({ onClose, robot }: RobotSummaryProps) =
       });
     return () => sub.unsubscribe();
   }, [rmfApi, robot.fleet, robot.name]);
+
+  React.useEffect(() => {
+    const sub = rmfApi.missionStateObs.subscribe((state) => {
+      const mission = state['mission'];
+      if (typeof mission !== 'object' || mission === null) {
+        setMissionId(null);
+        return;
+      }
+      const id = (mission as Record<string, unknown>).id;
+      setMissionId(typeof id === 'string' ? id : null);
+    });
+    return () => sub.unsubscribe();
+  }, [rmfApi]);
+
+  const handleRobotCommand = React.useCallback(
+    async (command: RobotCommand) => {
+      if (!missionId || !robotState?.name) {
+        return;
+      }
+      setRobotCommandPending(true);
+      try {
+        await rmfApi.sendRobotCommand(missionId, robotState.name, command);
+        appController.showAlert(
+          'success',
+          `${command === 'pause_robot' ? 'Pause' : 'Resume'} requested for ${robotState.name}`,
+        );
+      } catch (e) {
+        appController.showAlert('error', `Failed to send robot command: ${(e as Error).message}`);
+      } finally {
+        setRobotCommandPending(false);
+      }
+    },
+    [appController, missionId, rmfApi, robotState],
+  );
 
   const taskProgress = React.useMemo(() => {
     if (
@@ -290,7 +331,25 @@ export const RobotSummary = React.memo(({ onClose, robot }: RobotSummaryProps) =
         </>
       )}
       <DialogContent>{returnDialogContent()}</DialogContent>
-      <DialogActions sx={{ justifyContent: 'center' }}>
+      <DialogActions sx={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Button
+          size="small"
+          variant="contained"
+          startIcon={<Pause />}
+          disabled={!missionId || !robotState?.name || robotCommandPending}
+          onClick={() => handleRobotCommand('pause_robot')}
+        >
+          Pause robot
+        </Button>
+        <Button
+          size="small"
+          variant="contained"
+          startIcon={<PlayArrow />}
+          disabled={!missionId || !robotState?.name || robotCommandPending}
+          onClick={() => handleRobotCommand('resume_robot')}
+        >
+          Resume robot
+        </Button>
         <RobotDecommissionButton
           fleet={robot.fleet}
           robotState={robotState}
