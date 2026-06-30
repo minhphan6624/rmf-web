@@ -78,6 +78,7 @@ export interface RmfApi {
   missionEventsObs: Observable<MissionEvent>;
   sendMissionCommand(missionId: string, command: MissionCommand): Promise<void>;
   sendRobotCommand(missionId: string, robotId: string, command: RobotCommand): Promise<void>;
+  setRobotSpeedScale(missionId: string, robotId: string, scale: number): Promise<void>;
 }
 
 export class DefaultRmfApi implements RmfApi {
@@ -228,6 +229,15 @@ export class DefaultRmfApi implements RmfApi {
       mission_id: missionId,
       robot_id: robotId,
       command,
+    });
+  }
+
+  async setRobotSpeedScale(missionId: string, robotId: string, scale: number): Promise<void> {
+    await this._axiosInst.post(`${this.apiServerUrl.replace(/\/$/, '')}/missions/current/command`, {
+      mission_id: missionId,
+      robot_id: robotId,
+      command: 'set_speed_scale',
+      scale,
     });
   }
 

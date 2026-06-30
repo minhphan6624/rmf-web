@@ -488,10 +488,13 @@ class RmfGateway:
         mission_id: str,
         command: str,
         robot_id: str | None = None,
+        scale: float | None = None,
     ):
         payload = {"mission_id": mission_id, "command": command}
         if robot_id is not None:
             payload["robot_id"] = robot_id
+        if scale is not None:
+            payload["scale"] = scale
         msg = StringMsg()
         msg.data = json.dumps(payload)
         self._mission_command_pub.publish(msg)
