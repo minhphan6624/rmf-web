@@ -25,6 +25,8 @@ import {
   LinearProgressProps,
   TextField,
   Theme,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
   useTheme,
 } from '@mui/material';
@@ -115,6 +117,7 @@ export const RobotSummary = React.memo(({ onClose, robot }: RobotSummaryProps) =
   const [taskState, setTaskState] = React.useState<TaskState | null>(null);
   const [missionId, setMissionId] = React.useState<string | null>(null);
   const [robotCommandPending, setRobotCommandPending] = React.useState(false);
+  const [speedScale, setSpeedScale] = React.useState(1);
   const [openTaskDetailsLogs, setOpenTaskDetailsLogs] = React.useState(false);
   React.useEffect(() => {
     const sub = rmfApi
@@ -144,9 +147,22 @@ export const RobotSummary = React.memo(({ onClose, robot }: RobotSummaryProps) =
       }
       const id = (mission as Record<string, unknown>).id;
       setMissionId(typeof id === 'string' ? id : null);
+      const robots = state['robots'];
+      if (Array.isArray(robots)) {
+        const missionRobot = robots.find(
+          (item) =>
+            typeof item === 'object' &&
+            item !== null &&
+            (item as Record<string, unknown>).id === robot.name,
+        ) as Record<string, unknown> | undefined;
+        const confirmedScale = missionRobot?.speed_scale;
+        if (typeof confirmedScale === 'number') {
+          setSpeedScale(confirmedScale);
+        }
+      }
     });
     return () => sub.unsubscribe();
-  }, [rmfApi]);
+  }, [rmfApi, robot.name]);
 
   const handleRobotCommand = React.useCallback(
     async (command: RobotCommand) => {
@@ -162,6 +178,27 @@ export const RobotSummary = React.memo(({ onClose, robot }: RobotSummaryProps) =
         );
       } catch (e) {
         appController.showAlert('error', `Failed to send robot command: ${(e as Error).message}`);
+      } finally {
+        setRobotCommandPending(false);
+      }
+    },
+    [appController, missionId, rmfApi, robotState],
+  );
+
+  const handleSpeedScale = React.useCallback(
+    async (scale: number) => {
+      if (!missionId || !robotState?.name) {
+        return;
+      }
+      setRobotCommandPending(true);
+      try {
+        await rmfApi.setRobotSpeedScale(missionId, robotState.name, scale);
+        appController.showAlert(
+          'success',
+          `${Math.round(scale * 100)}% speed requested for ${robotState.name}`,
+        );
+      } catch (e) {
+        appController.showAlert('error', `Failed to set robot speed: ${(e as Error).message}`);
       } finally {
         setRobotCommandPending(false);
       }
@@ -331,6 +368,24 @@ export const RobotSummary = React.memo(({ onClose, robot }: RobotSummaryProps) =
         </>
       )}
       <DialogContent>{returnDialogContent()}</DialogContent>
+      <Box sx={{ px: 3, pb: 1, textAlign: 'center' }}>
+        <Typography variant="body2" fontWeight="bold" mb={1}>
+          Speed
+        </Typography>
+        <ToggleButtonGroup
+          exclusive
+          size="small"
+          value={speedScale}
+          disabled={!missionId || !robotState?.name || robotCommandPending}
+          onChange={(_event, value: number | null) => value !== null && handleSpeedScale(value)}
+        >
+          {[0.3, 0.5, 0.75, 1].map((scale) => (
+            <ToggleButton key={scale} value={scale}>
+              {Math.round(scale * 100)}%
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      </Box>
       <DialogActions sx={{ justifyContent: 'center', flexWrap: 'wrap' }}>
         <Button
           size="small"
