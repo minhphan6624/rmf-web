@@ -52,9 +52,11 @@ export interface MapProps {
   defaultZoom: number;
   defaultRobotZoom: number;
   attributionPrefix: string;
+  variant?: 'full' | 'compact';
 }
 
 export const Map = styled((props: MapProps) => {
+  const compact = props.variant === 'compact';
   const authenticator = useAuthenticator();
   const { fleets: fleetResources } = useResources();
   const rmfApi = useRmfApi();
@@ -480,43 +482,48 @@ export const Map = styled((props: MapProps) => {
 
   return buildingMap && currentLevel ? (
     <Suspense fallback={null}>
-      <LayersController
-        disabledLayers={disabledLayers}
-        levels={buildingMap.levels}
-        currentLevel={currentLevel}
-        onChange={(_event: ChangeEvent<HTMLInputElement>, value: string) => {
-          AppEvents.levelSelect.next(
-            buildingMap.levels.find((l: Level) => l.name === value) || buildingMap.levels[0],
-          );
-        }}
-        handleFullView={() => {
-          if (!sceneBoundingBox) {
-            return;
-          }
-          const center = sceneBoundingBox.getCenter(new Vector3());
-          const size = sceneBoundingBox.getSize(new Vector3());
-          const distance = Math.max(size.x, size.y, size.z) * 0.7;
-          const newZoom = props.defaultZoom;
-          AppEvents.resetCamera.next([center.x, center.y, center.z + distance, newZoom]);
-        }}
-        handleZoomIn={() => AppEvents.zoomIn.next()}
-        handleZoomOut={() => AppEvents.zoomOut.next()}
-      />
-      <Box
-        sx={{
-          position: 'absolute',
-          bottom: '20px',
-          right: '20px',
-          width: 'auto',
-          height: 'auto',
-          zIndex: '1',
-        }}
-      >
-        <Typography variant="caption" display="block">
-          {props.attributionPrefix}
-        </Typography>
-      </Box>
+      {!compact && (
+        <LayersController
+          disabledLayers={disabledLayers}
+          levels={buildingMap.levels}
+          currentLevel={currentLevel}
+          onChange={(_event: ChangeEvent<HTMLInputElement>, value: string) => {
+            AppEvents.levelSelect.next(
+              buildingMap.levels.find((l: Level) => l.name === value) || buildingMap.levels[0],
+            );
+          }}
+          handleFullView={() => {
+            if (!sceneBoundingBox) {
+              return;
+            }
+            const center = sceneBoundingBox.getCenter(new Vector3());
+            const size = sceneBoundingBox.getSize(new Vector3());
+            const distance = Math.max(size.x, size.y, size.z) * 0.7;
+            const newZoom = props.defaultZoom;
+            AppEvents.resetCamera.next([center.x, center.y, center.z + distance, newZoom]);
+          }}
+          handleZoomIn={() => AppEvents.zoomIn.next()}
+          handleZoomOut={() => AppEvents.zoomOut.next()}
+        />
+      )}
+      {!compact && (
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: '20px',
+            right: '20px',
+            width: 'auto',
+            height: 'auto',
+            zIndex: '1',
+          }}
+        >
+          <Typography variant="caption" display="block">
+            {props.attributionPrefix}
+          </Typography>
+        </Box>
+      )}
       <Canvas
+        style={{ cursor: compact ? 'grab' : 'auto' }}
         onCreated={({ camera }) => {
           let sceneBoundingBoxToUse = sceneBoundingBox;
           if (!sceneBoundingBoxToUse) {
@@ -544,7 +551,8 @@ export const Map = styled((props: MapProps) => {
         orthographic={true}
       >
         <CameraControl zoom={zoom} />
-        {!disabledLayers['Pickup & Dropoff waypoints'] &&
+        {!compact &&
+          !disabledLayers['Pickup & Dropoff waypoints'] &&
           waypoints
             .filter((waypoint) => waypoint.pickupHandler || waypoint.dropoffHandler)
             .map((place, index) => (
@@ -556,7 +564,8 @@ export const Map = styled((props: MapProps) => {
                 circleShape={false}
               />
             ))}
-        {!disabledLayers['Pickup & Dropoff labels'] &&
+        {!compact &&
+          !disabledLayers['Pickup & Dropoff labels'] &&
           waypoints
             .filter((waypoint) => waypoint.pickupHandler || waypoint.dropoffHandler)
             .map((place, index) => (
@@ -566,7 +575,8 @@ export const Map = styled((props: MapProps) => {
                 text={place.vertex.name}
               />
             ))}
-        {!disabledLayers['Waypoints'] &&
+        {!compact &&
+          !disabledLayers['Waypoints'] &&
           waypoints
             .filter((waypoint) => !waypoint.pickupHandler && !waypoint.dropoffHandler)
             .map((place, index) => (
@@ -578,7 +588,8 @@ export const Map = styled((props: MapProps) => {
                 circleShape={false}
               />
             ))}
-        {!disabledLayers['Waypoint labels'] &&
+        {!compact &&
+          !disabledLayers['Waypoint labels'] &&
           waypoints
             .filter((waypoint) => !waypoint.pickupHandler && !waypoint.dropoffHandler)
             .map((place, index) => (
@@ -588,7 +599,7 @@ export const Map = styled((props: MapProps) => {
                 text={place.vertex.name}
               />
             ))}
-        {buildingMap.lifts.length > 0
+        {!compact && buildingMap.lifts.length > 0
           ? buildingMap.lifts.map((lift) =>
               lift.doors.map((door, i) => (
                 <React.Fragment key={`${door.name}${i}`}>
@@ -612,7 +623,7 @@ export const Map = styled((props: MapProps) => {
               )),
             )
           : null}
-        {!disabledLayers['Doors & Lifts'] && buildingMap.lifts.length > 0
+        {!compact && !disabledLayers['Doors & Lifts'] && buildingMap.lifts.length > 0
           ? buildingMap.lifts.map((lift) =>
               lift.doors.map(() => (
                 <Lifts
@@ -629,7 +640,7 @@ export const Map = styled((props: MapProps) => {
               )),
             )
           : null}
-        {currentLevel.doors.length > 0
+        {!compact && currentLevel.doors.length > 0
           ? currentLevel.doors.map((door, i) => (
               <React.Fragment key={`${door.name}${i}`}>
                 {!disabledLayers['Doors labels'] && (
@@ -666,7 +677,7 @@ export const Map = styled((props: MapProps) => {
             <ReactThreeFiberImageMaker level={currentLevel} imageUrl={imageUrl} />
           </ErrorBoundary>
         )}
-        {!disabledLayers['Robots'] &&
+        {(compact || !disabledLayers['Robots']) &&
           robots.map((robot) => {
             const robotId = `${robot.fleet}/${robot.name}`;
             if (robotId in robotLocations) {
@@ -681,13 +692,13 @@ export const Map = styled((props: MapProps) => {
                     setOpenRobotSummary(true);
                     setSelectedRobot(robot);
                   }}
-                  robotLabel={!disabledLayers['Robots labels']}
+                  robotLabel={!compact && !disabledLayers['Robots labels']}
                 />
               );
             }
             return null;
           })}
-        {!disabledLayers['Trajectories'] &&
+        {(compact || !disabledLayers['Trajectories']) &&
           trajectories.map((trajData) => (
             <Line
               key={trajData.trajectory.id}
@@ -698,10 +709,10 @@ export const Map = styled((props: MapProps) => {
           ))}
         <ambientLight />
       </Canvas>
-      {openRobotSummary && selectedRobot && (
+      {!compact && openRobotSummary && selectedRobot && (
         <RobotSummary robot={selectedRobot} onClose={() => setOpenRobotSummary(false)} />
       )}
-      {openDoorSummary && selectedDoor && (
+      {!compact && openDoorSummary && selectedDoor && (
         <DoorSummary
           onClose={() => setOpenDoorSummary(false)}
           door={selectedDoor}
@@ -709,7 +720,7 @@ export const Map = styled((props: MapProps) => {
         />
       )}
 
-      {openLiftSummary && selectedLift && (
+      {!compact && openLiftSummary && selectedLift && (
         <LiftSummary onClose={() => setOpenLiftSummary(false)} lift={selectedLift} />
       )}
     </Suspense>

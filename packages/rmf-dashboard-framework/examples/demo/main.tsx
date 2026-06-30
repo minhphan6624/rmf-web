@@ -13,12 +13,14 @@ import {
 import { createMapApp, robotsApp, tasksApp } from 'rmf-dashboard-framework/micro-apps';
 import { StubAuthenticator } from 'rmf-dashboard-framework/services';
 
-const mapApp = createMapApp({
+const mapConfig = {
   attributionPrefix: 'Open-RMF',
   defaultMapLevel: 'LG',
   defaultRobotZoom: 20,
-  defaultZoom: 6,
-});
+  defaultZoom: 30,
+};
+
+const mapApp = createMapApp(mapConfig);
 
 const homeWorkspace: InitialWindow[] = [
   {
@@ -78,7 +80,7 @@ export default function App() {
         {
           name: 'Mission',
           route: 'mission',
-          element: <MissionDashboard />,
+          element: <MissionDashboard mapConfig={mapConfig} />,
         },
       ]}
     />

@@ -1,4 +1,3 @@
-import MapIcon from '@mui/icons-material/Map';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import {
@@ -9,7 +8,6 @@ import {
   Chip,
   LinearProgress,
   Stack,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import type React from 'react';
@@ -333,11 +331,6 @@ export function MissionFlowView({
       title="Mission Control"
       action={
         <Stack direction="row" spacing={1}>
-          <Tooltip title="Open the full Open-RMF map tab">
-            <Button size="small" startIcon={<MapIcon />} onClick={() => navigate('..')}>
-              Map
-            </Button>
-          </Tooltip>
           <Button size="small" startIcon={<OpenInNewIcon />} onClick={() => navigate('../tasks')}>
             Tasks
           </Button>

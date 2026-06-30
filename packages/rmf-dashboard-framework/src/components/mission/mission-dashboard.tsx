@@ -1,6 +1,8 @@
 import { Box } from '@mui/material';
 
+import type { MapProps } from '../map';
 import { ActivityPanel } from './activity-panel';
+import { CompactMap } from './compact-map';
 import { DetailPanel } from './detail-panel';
 import { FleetPanel } from './fleet-panel';
 import { MissionFlowView } from './mission-flow-view';
@@ -9,7 +11,7 @@ import { MissionTimeline } from './mission-timeline';
 import { TopBar } from './top-bar';
 import { useDashboardData } from './use-dashboard-data';
 
-export function MissionDashboard() {
+export function MissionDashboard({ mapConfig }: { mapConfig?: MapProps }) {
   const {
     dashboardData,
     selectedEntity,
@@ -50,6 +52,8 @@ export function MissionDashboard() {
           </Box>
 
           <Box sx={{ display: 'grid', gap: 1.5, gridColumn: { lg: 2, xl: 'auto' } }}>
+            {mapConfig && <CompactMap mapConfig={mapConfig} />}
+
             <MissionFlowView
               data={dashboardData}
               selectedEntity={selectedEntity}

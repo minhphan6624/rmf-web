@@ -120,6 +120,8 @@ export class MockRmfApi implements RmfApi {
   missionStateObs = new Subject<Record<string, unknown>>();
   missionDebugStateObs = new Subject<Record<string, unknown>>();
   missionEventsObs = new Subject<Record<string, unknown>>();
+  async sendMissionCommand() {}
+  async sendRobotCommand() {}
 
   private _cacheObs<T>(store: Record<string, Subject<T>>, key: string): Subject<T> {
     if (!(key in store)) {

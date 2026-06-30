@@ -40,6 +40,7 @@ export type MissionState = Record<string, unknown>;
 export type MissionDebugState = Record<string, unknown>;
 export type MissionEvent = Record<string, unknown>;
 export type MissionCommand = 'start' | 'pause' | 'resume' | 'abort';
+export type RobotCommand = 'pause_robot' | 'resume_robot';
 
 export interface RmfApi {
   beaconsApi: BeaconsApi;
@@ -76,6 +77,7 @@ export interface RmfApi {
   missionDebugStateObs: Observable<MissionDebugState>;
   missionEventsObs: Observable<MissionEvent>;
   sendMissionCommand(missionId: string, command: MissionCommand): Promise<void>;
+  sendRobotCommand(missionId: string, robotId: string, command: RobotCommand): Promise<void>;
 }
 
 export class DefaultRmfApi implements RmfApi {
@@ -217,6 +219,14 @@ export class DefaultRmfApi implements RmfApi {
   async sendMissionCommand(missionId: string, command: MissionCommand): Promise<void> {
     await this._axiosInst.post(`${this.apiServerUrl.replace(/\/$/, '')}/missions/current/command`, {
       mission_id: missionId,
+      command,
+    });
+  }
+
+  async sendRobotCommand(missionId: string, robotId: string, command: RobotCommand): Promise<void> {
+    await this._axiosInst.post(`${this.apiServerUrl.replace(/\/$/, '')}/missions/current/command`, {
+      mission_id: missionId,
+      robot_id: robotId,
       command,
     });
   }

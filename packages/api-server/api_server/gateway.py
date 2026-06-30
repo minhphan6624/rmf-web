@@ -483,9 +483,17 @@ class RmfGateway:
         reset_msg.data = False
         self._fire_alarm_trigger.publish(reset_msg)
 
-    def publish_mission_command(self, mission_id: str, command: str):
+    def publish_mission_command(
+        self,
+        mission_id: str,
+        command: str,
+        robot_id: str | None = None,
+    ):
+        payload = {"mission_id": mission_id, "command": command}
+        if robot_id is not None:
+            payload["robot_id"] = robot_id
         msg = StringMsg()
-        msg.data = json.dumps({"mission_id": mission_id, "command": command})
+        msg.data = json.dumps(payload)
         self._mission_command_pub.publish(msg)
 
 
