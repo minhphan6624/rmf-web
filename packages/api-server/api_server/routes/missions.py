@@ -1,3 +1,4 @@
+import math
 from typing import Annotated, Any, Literal
 
 from fastapi import Depends, HTTPException
@@ -20,8 +21,10 @@ class MissionCommandRequest(BaseModel):
         "abort",
         "pause_robot",
         "resume_robot",
+        "set_speed_scale",
     ]
     robot_id: str | None = None
+    scale: Any = None
 
 
 def _current_or_404(value: dict | None):
@@ -84,11 +87,35 @@ def post_current_mission_command(
     command: MissionCommandRequest,
     rmf_gateway: Annotated[RmfGateway, Depends(get_rmf_gateway)],
 ):
-    if command.command in ("pause_robot", "resume_robot") and command.robot_id is None:
+    if (
+        command.command in ("pause_robot", "resume_robot", "set_speed_scale")
+        and command.robot_id is None
+    ):
         raise HTTPException(status_code=422, detail="robot_id is required")
+    if command.command == "set_speed_scale":
+        if (
+            isinstance(command.scale, bool)
+            or not isinstance(command.scale, (int, float))
+            or not math.isfinite(command.scale)
+            or not 0.3 <= command.scale <= 1.0
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail="scale must be a number from 0.3 to 1.0",
+            )
+
+        state = get_mission_events().mission_state.value or {}
+        robot_ids = {
+            robot.get("id")
+            for robot in state.get("robots", [])
+            if isinstance(robot, dict)
+        }
+        if command.robot_id not in robot_ids:
+            raise HTTPException(status_code=422, detail="invalid robot_id")
     rmf_gateway.publish_mission_command(
         command.mission_id,
         command.command,
         command.robot_id,
+        command.scale,
     )
     return {"accepted": True}
